@@ -282,6 +282,14 @@
         <button class="nav-btn" data-module="prodis">Program Studi</button>
         <button class="nav-btn" data-module="ruangans">Ruangan</button>
         <button class="nav-btn" data-module="periodes">Periode</button>
+        
+        <hr style="border: 0; border-top: 1px solid var(--glass-border); margin: 1rem 0;">
+        <a href="/jadwal" class="nav-btn" style="text-decoration: none; display: block;">📅 Jadwal</a>
+        <a href="/beban-kerja" class="nav-btn" style="text-decoration: none; display: block;">📊 Beban Kerja</a>
+        
+        <button id="auth-action-btn" onclick="handleLogout()" class="nav-btn" style="margin-top: auto; color: var(--danger); font-weight: 600; display: flex; align-items: center; gap: 0.5rem; background: transparent; border: none; width: 100%; cursor: pointer;">
+            🚪 Sign Out
+        </button>
     </aside>
 
     <main class="main">
@@ -320,6 +328,8 @@
     </div>
 
     <script>
+        const LOGIN_URL = '/login';
+
         // Module configurations
         const MODULES = {
             makuls: {
@@ -397,13 +407,12 @@
                     { key: 'periode', label: 'Periode' },
                     { key: 'status', label: 'Status' },
                     { key: 'tanggal_mulai', label: 'Tgl Mulai' },
-                    { key: 'tanggal_selesai', label: 'Tgl Selesai' },
-                    { key: 'is_locked', label: 'Locked' }
+                    { key: 'tanggal_selesai', label: 'Tgl Selesai' }
                 ],
                 fields: [
                     { name: 'periode', label: 'Periode', type: 'text', required: true },
                     { name: 'tanggal_mulai', label: 'Tanggal Mulai', type: 'date', required: true },
-                    { name: 'tanggal_selesai', label: 'Tanggal Selesai', type: 'date', required: true },
+                    { name: 'tanggal_selesai', label: 'Tanggal Selesai', type: 'date', required: false },
                     { name: 'status', label: 'Status', type: 'select', options: ['aktif', 'nonaktif'], required: true }
                 ]
             }
@@ -415,7 +424,7 @@
         let editId = null;
 
         // DOM Elements
-        const navBtns = document.querySelectorAll('.nav-btn');
+        const navBtns = document.querySelectorAll('[data-module]');
         const pageTitle = document.getElementById('page-title');
         const tableHead = document.getElementById('table-head');
         const tableBody = document.getElementById('table-body');
@@ -427,11 +436,73 @@
         const dataForm = document.getElementById('data-form');
         const btnAdd = document.getElementById('btn-add');
         const btnCloseModal = document.getElementById('btn-close-modal');
+        const authActionBtn = document.getElementById('auth-action-btn');
 
-        // Initialization
+        function getAccessToken() {
+            return sessionStorage.getItem('access_token') || localStorage.getItem('access_token');
+        }
+
+        function storeTokens(accessToken, refreshToken = null) {
+            sessionStorage.setItem('access_token', accessToken);
+            if (refreshToken) {
+                sessionStorage.setItem('refresh_token', refreshToken);
+            }
+
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+        }
+
+        function clearTokens() {
+            sessionStorage.removeItem('access_token');
+            sessionStorage.removeItem('refresh_token');
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+        }
+
+        function authHeaders(extraHeaders = {}) {
+            return {
+                ...extraHeaders,
+                'Authorization': `Bearer ${getAccessToken()}`,
+                'Accept': 'application/json'
+            };
+        }
+
+        async function requireAuth() {
+            const token = getAccessToken();
+
+            if (!token) {
+                window.location.href = LOGIN_URL;
+                return false;
+            }
+
+            try {
+                const response = await fetch('/api/v1/auth/me', {
+                    headers: authHeaders()
+                });
+
+                if (!response.ok) {
+                    clearTokens();
+                    window.location.href = LOGIN_URL;
+                    return false;
+                }
+
+                storeTokens(token);
+                return true;
+            } catch (error) {
+                clearTokens();
+                window.location.href = LOGIN_URL;
+                return false;
+            }
+        }
+
         init();
 
-        function init() {
+        async function init() {
+            const authenticated = await requireAuth();
+            if (!authenticated) {
+                return;
+            }
+
             // Setup navigation
             navBtns.forEach(btn => {
                 btn.addEventListener('click', (e) => {
@@ -465,7 +536,16 @@
             loadingIndicator.style.display = 'block';
 
             try {
-                const response = await fetch(config.endpoint);
+                const response = await fetch(config.endpoint, {
+                    headers: authHeaders()
+                });
+
+                if (response.status === 401) {
+                    clearTokens();
+                    window.location.href = LOGIN_URL;
+                    return;
+                }
+
                 const json = await response.json();
                 currentData = json.data;
                 renderTable();
@@ -538,7 +618,12 @@
             // Generate form fields
             formFields.innerHTML = config.fields.map(field => {
                 let inputHtml = '';
-                const val = item ? (item[field.name] || '') : '';
+                let val = item ? (item[field.name] || '') : '';
+                
+                // Format date for <input type="date"> (YYYY-MM-DD)
+                if (field.type === 'date' && val) {
+                    val = val.substring(0, 10);
+                }
 
                 if (field.type === 'select') {
                     const options = field.options.map(opt => `<option value="${opt}" ${val === opt ? 'selected' : ''}>${opt}</option>`).join('');
@@ -553,6 +638,19 @@
                     </div>
                 `;
             }).join('');
+
+            // Special logic for Periodes: Reset tanggal_selesai when changing status from nonaktif to aktif
+            if (currentModule === 'periodes' && item && item.status === 'nonaktif') {
+                const statusSelect = document.getElementById('status');
+                const tglSelesaiInput = document.getElementById('tanggal_selesai');
+                if (statusSelect && tglSelesaiInput) {
+                    statusSelect.addEventListener('change', (e) => {
+                        if (e.target.value === 'aktif') {
+                            tglSelesaiInput.value = '';
+                        }
+                    });
+                }
+            }
 
             modalOverlay.classList.add('active');
         }
@@ -582,12 +680,17 @@
 
                 const response = await fetch(url, {
                     method: method,
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
+                    headers: authHeaders({
+                        'Content-Type': 'application/json'
+                    }),
                     body: JSON.stringify(data)
                 });
+
+                if (response.status === 401) {
+                    clearTokens();
+                    window.location.href = LOGIN_URL;
+                    return;
+                }
 
                 const result = await response.json();
 
@@ -609,8 +712,14 @@
             try {
                 const response = await fetch(`${config.endpoint}/${id}`, {
                     method: 'DELETE',
-                    headers: { 'Accept': 'application/json' }
+                    headers: authHeaders()
                 });
+
+                if (response.status === 401) {
+                    clearTokens();
+                    window.location.href = LOGIN_URL;
+                    return;
+                }
 
                 if (!response.ok) {
                     const result = await response.json();
@@ -623,6 +732,20 @@
                 console.error(err);
                 alert('An error occurred while deleting.');
             }
+        }
+
+        async function handleLogout() {
+            const token = getAccessToken();
+            if (token) {
+                try {
+                    await fetch('/api/v1/auth/logout', {
+                        method: 'POST',
+                        headers: authHeaders(),
+                    });
+                } catch (_) {}
+            }
+            clearTokens();
+            window.location.href = LOGIN_URL;
         }
 
     </script>

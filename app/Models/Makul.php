@@ -23,13 +23,13 @@ class Makul extends Model
 
     /**
      * Auto-compute SKS Praktik: 1 SKS Praktik = 3 Sesi Praktik
-     * Always returns an integer (floor division).
+     * Always returns an integer (rounded up).
      */
     public function getJumlahSksPraktekAttribute(): int
     {
         if ($this->jumlah_sesi_praktek === 0) {
             return 0;
         }
-        return (int) floor($this->jumlah_sesi_praktek / 3);
+        return (int) ceil($this->jumlah_sesi_praktek / 3);
     }
 }

@@ -268,6 +268,15 @@
         <h2>Beban Kerja</h2>
         <button class="nav-btn active" data-tab="dosen">Beban Dosen</button>
         <button class="nav-btn" data-tab="ruangan">Beban Ruangan</button>
+        <button class="nav-btn" data-tab="laboran">Beban Laboran</button>
+        
+        <hr style="border: 0; border-top: 1px solid var(--glass-border); margin: 1rem 0;">
+        <a href="/jadwal" class="nav-btn" style="text-decoration: none; display: block;">📅 Jadwal</a>
+        <a href="/master-data" class="nav-btn" style="text-decoration: none; display: block;">🗂️ Master Data</a>
+        
+        <button id="auth-action-btn" onclick="handleAuthAction()" class="nav-btn" style="margin-top: auto; color: var(--danger); font-weight: 600; display: flex; align-items: center; gap: 0.5rem; background: transparent; border: none; width: 100%; cursor: pointer;">
+            🔐 Sign In
+        </button>
     </aside>
 
     <main class="main">
@@ -287,6 +296,13 @@
             <div class="form-group" id="filter-ruangan-group" style="display: none;">
                 <label for="ruangan-select">Pilih Ruangan</label>
                 <select id="ruangan-select">
+                    <option value="">Loading...</option>
+                </select>
+            </div>
+
+            <div class="form-group" id="filter-laboran-group" style="display: none;">
+                <label for="laboran-select">Pilih Laboran</label>
+                <select id="laboran-select">
                     <option value="">Loading...</option>
                 </select>
             </div>
@@ -326,19 +342,24 @@
     </main>
 
     <script>
+        const LOGIN_URL = '/login';
+
         // State
-        let currentTab = 'dosen'; // 'dosen' or 'ruangan'
+        let currentTab = 'dosen'; // 'dosen' or 'ruangan' or 'laboran'
         let masterData = null;
+        let isAuthenticated = false;
 
         // DOM Elements
-        const navBtns = document.querySelectorAll('.nav-btn');
+        const navBtns = document.querySelectorAll('[data-tab]');
         const pageTitle = document.getElementById('page-title');
         
         const dosenGroup = document.getElementById('filter-dosen-group');
         const ruanganGroup = document.getElementById('filter-ruangan-group');
+        const laboranGroup = document.getElementById('filter-laboran-group');
         
         const selectDosen = document.getElementById('dosen-select');
         const selectRuangan = document.getElementById('ruangan-select');
+        const selectLaboran = document.getElementById('laboran-select');
         const selectPeriode = document.getElementById('periode-select');
         const btnFetch = document.getElementById('btn-fetch');
         
@@ -349,11 +370,42 @@
         
         const tableHead = document.getElementById('table-head');
         const tableBody = document.getElementById('table-body');
+        const authActionBtn = document.getElementById('auth-action-btn');
+
+        function getAccessToken() {
+            return sessionStorage.getItem('access_token') || localStorage.getItem('access_token');
+        }
+
+        function storeTokens(accessToken, refreshToken = null) {
+            sessionStorage.setItem('access_token', accessToken);
+            if (refreshToken) {
+                sessionStorage.setItem('refresh_token', refreshToken);
+            }
+
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+        }
+
+        function clearTokens() {
+            sessionStorage.removeItem('access_token');
+            sessionStorage.removeItem('refresh_token');
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+        }
+
+        function authHeaders() {
+            return {
+                'Authorization': `Bearer ${getAccessToken()}`,
+                'Accept': 'application/json'
+            };
+        }
 
         // Initialization
         init();
 
-        function init() {
+        async function init() {
+            await bootstrapAuth();
+
             // Setup navigation
             navBtns.forEach(btn => {
                 btn.addEventListener('click', (e) => {
@@ -371,15 +423,54 @@
             fetchMasterData();
         }
 
+        async function bootstrapAuth() {
+            const token = getAccessToken();
+
+            if (!token) {
+                updateAuthUI(false);
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/v1/auth/me', {
+                    headers: authHeaders()
+                });
+
+                if (!response.ok) {
+                    clearTokens();
+                    updateAuthUI(false);
+                    return;
+                }
+
+                storeTokens(token);
+                updateAuthUI(true);
+            } catch (error) {
+                clearTokens();
+                updateAuthUI(false);
+            }
+        }
+
+        function updateAuthUI(authenticated) {
+            isAuthenticated = authenticated;
+            authActionBtn.textContent = authenticated ? '🚪 Sign Out' : '🔐 Sign In';
+        }
+
         function updateUIForTab() {
             if (currentTab === 'dosen') {
                 pageTitle.textContent = 'Beban Kerja Dosen';
                 dosenGroup.style.display = 'flex';
                 ruanganGroup.style.display = 'none';
-            } else {
+                laboranGroup.style.display = 'none';
+            } else if (currentTab === 'ruangan') {
                 pageTitle.textContent = 'Beban Kerja Ruangan';
                 dosenGroup.style.display = 'none';
                 ruanganGroup.style.display = 'flex';
+                laboranGroup.style.display = 'none';
+            } else {
+                pageTitle.textContent = 'Beban Kerja Laboran';
+                dosenGroup.style.display = 'none';
+                ruanganGroup.style.display = 'none';
+                laboranGroup.style.display = 'flex';
             }
         }
         
@@ -415,6 +506,10 @@
             // Ruangan
             selectRuangan.innerHTML = '<option value="">-- Pilih Ruangan --</option>' + 
                 masterData.ruangans.map(r => `<option value="${r.id}">${r.nama_ruangan} (${r.kode_ruangan})</option>`).join('');
+
+            // Laboran
+            selectLaboran.innerHTML = '<option value="">-- Pilih Laboran --</option>' + 
+                masterData.laborans.map(l => `<option value="${l.id}">${l.nama_laboran} (${l.kode_laboran})</option>`).join('');
                 
             // Periode
             selectPeriode.innerHTML = '<option value="">-- Pilih Periode --</option>' + 
@@ -430,29 +525,31 @@
             }
 
             let endpoint = '';
-            let payload = { periode_id: periodeId };
+            const params = new URLSearchParams({ periode_id: periodeId });
 
             if (currentTab === 'dosen') {
                 if (!selectDosen.value) return alert("Pilih dosen!");
                 endpoint = '/api/v1/beban-kerja/dosen';
-                payload.dosen_id = selectDosen.value;
-            } else {
+                params.set('dosen_id', selectDosen.value);
+            } else if (currentTab === 'ruangan') {
                 if (!selectRuangan.value) return alert("Pilih ruangan!");
                 endpoint = '/api/v1/beban-kerja/ruangan';
-                payload.ruangan_id = selectRuangan.value;
+                params.set('ruangan_id', selectRuangan.value);
+            } else {
+                if (!selectLaboran.value) return alert("Pilih laboran!");
+                endpoint = '/api/v1/beban-kerja/laboran';
+                params.set('laboran_id', selectLaboran.value);
             }
 
             resetView();
             loadingIndicator.style.display = 'block';
 
             try {
-                const response = await fetch(endpoint, {
-                    method: 'POST',
+                const response = await fetch(`${endpoint}?${params.toString()}`, {
+                    method: 'GET',
                     headers: {
-                        'Content-Type': 'application/json',
                         'Accept': 'application/json'
-                    },
-                    body: JSON.stringify(payload)
+                    }
                 });
                 
                 if (!response.ok) {
@@ -504,7 +601,7 @@
                         <div class="value">${summary.total_keseluruhan_beban} SKS</div>
                     </div>
                 `;
-            } else {
+            } else if (currentTab === 'ruangan') {
                 summarySection.innerHTML = `
                     <div class="card">
                         <h4>Total Penggunaan (Jadwal)</h4>
@@ -513,6 +610,17 @@
                     <div class="card highlight">
                         <h4>Total Sesi Penggunaan</h4>
                         <div class="value">${summary.total_sesi_penggunaan_ruangan}</div>
+                    </div>
+                `;
+            } else {
+                summarySection.innerHTML = `
+                    <div class="card">
+                        <h4>Total Jadwal Laboran</h4>
+                        <div class="value">${summary.total_jadwal_laboran}</div>
+                    </div>
+                    <div class="card highlight">
+                        <h4>Total Sesi Laboran</h4>
+                        <div class="value">${summary.total_sesi_laboran}</div>
                     </div>
                 `;
             }
@@ -544,7 +652,7 @@
                     </tr>
                 `).join('');
                 
-            } else {
+            } else if (currentTab === 'ruangan') {
                 tableHead.innerHTML = `<tr>
                     <th>Mata Kuliah</th>
                     <th>Dosen</th>
@@ -564,7 +672,51 @@
                         <td>${item.jenis_ruangan}</td>
                     </tr>
                 `).join('');
+            } else {
+                tableHead.innerHTML = `<tr>
+                    <th>Mata Kuliah</th>
+                    <th>Program Studi</th>
+                    <th>Kelas</th>
+                    <th>Hari</th>
+                    <th>Jam</th>
+                    <th>Ruangan</th>
+                    <th>Jenis Ruangan</th>
+                    <th>Total Sesi</th>
+                </tr>`;
+
+                tableBody.innerHTML = schedules.map(item => `
+                    <tr>
+                        <td>${item.mata_kuliah}</td>
+                        <td>${item.program_studi || '-'}</td>
+                        <td>${item.kelas}</td>
+                        <td>${item.hari}</td>
+                        <td>${item.jam_mulai} - ${item.jam_selesai}</td>
+                        <td>${item.ruangan || '-'}</td>
+                        <td>${item.jenis_ruangan || '-'}</td>
+                        <td>${item.total_sesi}</td>
+                    </tr>
+                `).join('');
             }
+        }
+
+        async function handleAuthAction() {
+            if (!isAuthenticated) {
+                window.location.href = LOGIN_URL;
+                return;
+            }
+
+            const token = getAccessToken();
+            if (token) {
+                try {
+                    await fetch('/api/v1/auth/logout', {
+                        method: 'POST',
+                        headers: authHeaders(),
+                    });
+                } catch (_) {}
+            }
+            clearTokens();
+            updateAuthUI(false);
+            window.location.href = '/beban-kerja';
         }
 
     </script>

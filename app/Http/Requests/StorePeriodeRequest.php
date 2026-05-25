@@ -17,7 +17,7 @@ class StorePeriodeRequest extends FormRequest
             'periode'          => 'required|string|max:100',
             'status'           => 'sometimes|in:aktif,nonaktif',
             'tanggal_mulai'    => 'required|date',
-            'tanggal_selesai'  => 'required|date|after_or_equal:tanggal_mulai',
+            'tanggal_selesai'  => 'nullable|date|after_or_equal:tanggal_mulai',
         ];
     }
 

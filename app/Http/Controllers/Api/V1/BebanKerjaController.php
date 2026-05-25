@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\BebanKerjaDosenRequest;
+use App\Http\Requests\BebanKerjaLaboranRequest;
 use App\Http\Requests\BebanKerjaRuanganRequest;
 use App\Models\Schedule;
 use Illuminate\Http\JsonResponse;
@@ -141,6 +142,71 @@ class BebanKerjaController extends Controller
                 'summary' => [
                     'total_penggunaan_ruangan' => $totalPenggunaan,
                     'total_sesi_penggunaan_ruangan' => $totalSesiPenggunaan,
+                ]
+            ]
+        ]);
+    }
+
+    /**
+     * Get workload for a specific Laboran and Periode.
+     */
+    public function laboran(BebanKerjaLaboranRequest $request): JsonResponse
+    {
+        $laboranId = $request->input('laboran_id');
+        $periodeId = $request->input('periode_id');
+
+        $schedules = Schedule::with(['makul', 'prodi', 'theoryRoom', 'practiceRoom'])
+            ->where('periode_id', $periodeId)
+            ->whereHas('laborans', function ($query) use ($laboranId) {
+                $query->where('laboran_id', $laboranId);
+            })
+            ->get();
+
+        $totalJadwal = $schedules->count();
+        $totalSesiLaboran = 0;
+
+        $mappedSchedules = $schedules->map(function ($schedule) use (&$totalSesiLaboran) {
+            $makul = $schedule->makul;
+
+            $sesiMakul = $makul->jumlah_sesi_teori + $makul->jumlah_sesi_praktek;
+            $totalSesiLaboran += $sesiMakul;
+
+            $ruangan = null;
+            $jenisRuangan = null;
+
+            if ($schedule->status === 'online') {
+                $ruangan = 'Online';
+                $jenisRuangan = 'Online';
+            } else {
+                if ($schedule->practice_room_id) {
+                    $ruangan = $schedule->practiceRoom?->nama_ruangan;
+                    $jenisRuangan = 'Praktik';
+                } elseif ($schedule->theory_room_id) {
+                    $ruangan = $schedule->theoryRoom?->nama_ruangan;
+                    $jenisRuangan = 'Teori';
+                }
+            }
+
+            return [
+                'id' => $schedule->id,
+                'mata_kuliah' => $makul->nama_makul,
+                'program_studi' => $schedule->prodi?->nama_prodi,
+                'kelas' => $schedule->class,
+                'hari' => $schedule->day,
+                'jam_mulai' => substr($schedule->start_time, 0, 5),
+                'jam_selesai' => substr($schedule->end_time, 0, 5),
+                'ruangan' => $ruangan,
+                'jenis_ruangan' => $jenisRuangan,
+                'total_sesi' => $sesiMakul,
+            ];
+        });
+
+        return response()->json([
+            'data' => [
+                'schedules' => $mappedSchedules,
+                'summary' => [
+                    'total_jadwal_laboran' => $totalJadwal,
+                    'total_sesi_laboran' => $totalSesiLaboran,
                 ]
             ]
         ]);

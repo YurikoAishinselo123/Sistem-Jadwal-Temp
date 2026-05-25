@@ -15,7 +15,6 @@ class Periode extends Model
     protected $casts = [
         'tanggal_mulai'   => 'date',
         'tanggal_selesai' => 'date',
-        'is_locked'       => 'boolean',
     ];
 
     public function schedules(): HasMany
@@ -24,14 +23,13 @@ class Periode extends Model
     }
 
     /**
-     * Lock this periode: sets status to nonaktif and is_locked to true.
+     * Lock this periode: sets status to nonaktif.
      * Once locked, data in this periode cannot be edited or deleted.
      */
     public function tutupPeriode(): void
     {
         $this->update([
             'status'    => 'nonaktif',
-            'is_locked' => true,
         ]);
     }
 
@@ -40,6 +38,6 @@ class Periode extends Model
      */
     public function isLocked(): bool
     {
-        return (bool) $this->is_locked;
+        return $this->status === 'nonaktif';
     }
 }

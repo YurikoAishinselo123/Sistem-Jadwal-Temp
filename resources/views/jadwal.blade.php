@@ -140,6 +140,18 @@
             color: white;
         }
 
+        .btn-info {
+            background: transparent;
+            border: 1px solid #0ea5e9;
+            color: #0ea5e9;
+            box-shadow: none;
+            padding: 0.4rem 0.8rem;
+        }
+        .btn-info:hover {
+            background: #0ea5e9;
+            color: white;
+        }
+
         /* Table Container */
         .table-container {
             background: var(--glass-bg);
@@ -315,15 +327,69 @@
             margin-top: 0.25rem;
         }
 
+        .filter-panel {
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .filter-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 1rem 1.5rem;
+            align-items: end;
+        }
+
+        .filter-actions {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: flex-end;
+            margin-top: 1rem;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid var(--glass-border);
+            color: var(--text-main);
+            box-shadow: none;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.08);
+        }
+
+        @media (max-width: 960px) {
+            .filter-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .filter-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .filter-actions {
+                justify-content: stretch;
+                flex-direction: column;
+            }
+        }
+
     </style>
 </head>
 <body>
 
     <aside class="sidebar">
         <h2>Dashboard</h2>
-        <a href="/master-data" class="nav-btn">Master Data</a>
-        <a href="/jadwal" class="nav-btn active">Jadwal</a>
-        <a href="/beban-kerja" class="nav-btn">Beban Kerja</a>
+        <a href="/jadwal" class="nav-btn active">📅 Jadwal</a>
+        <a href="/master-data" class="nav-btn">🗂️ Master Data</a>
+        <a href="/beban-kerja" class="nav-btn">📊 Beban Kerja</a>
+        
+        <button id="auth-action-btn" onclick="handleAuthAction()" class="nav-btn" style="margin-top: auto; color: var(--danger); font-weight: 600; display: flex; align-items: center; gap: 0.5rem; background: transparent; border: none; width: 100%; cursor: pointer;">
+            🔐 Sign In
+        </button>
     </aside>
 
     <main class="main">
@@ -331,6 +397,67 @@
             <h1>Manajemen Jadwal</h1>
             <button class="btn" id="btn-add" disabled>+ Tambah Jadwal</button>
         </div>
+
+        <section class="filter-panel">
+            <div class="filter-grid">
+                <div class="form-group">
+                    <label for="filter-periode">Periode</label>
+                    <select id="filter-periode">
+                        <option value="">Semua Periode</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="filter-day">Hari</label>
+                    <select id="filter-day">
+                        <option value="">Semua Hari</option>
+                        <option value="Senin">Senin</option>
+                        <option value="Selasa">Selasa</option>
+                        <option value="Rabu">Rabu</option>
+                        <option value="Kamis">Kamis</option>
+                        <option value="Jumat">Jumat</option>
+                        <option value="Sabtu">Sabtu</option>
+                        <option value="Minggu">Minggu</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="filter-prodi">Program Studi</label>
+                    <select id="filter-prodi">
+                        <option value="">Semua Program Studi</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="filter-makul">Mata Kuliah</label>
+                    <select id="filter-makul">
+                        <option value="">Semua Mata Kuliah</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="filter-schedule-type">Tipe Jadwal</label>
+                    <select id="filter-schedule-type">
+                        <option value="">Semua Tipe</option>
+                        <option value="semester">Semester</option>
+                        <option value="pengganti">Pengganti</option>
+                        <option value="ujian">Ujian</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="filter-laboran">Laboran</label>
+                    <select id="filter-laboran">
+                        <option value="">Semua Laboran</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="filter-actions">
+                <button type="button" class="btn btn-secondary" id="btn-reset-filter">Reset</button>
+                <button type="button" class="btn" id="btn-search-filter">Search</button>
+            </div>
+        </section>
 
         <div class="table-container">
             <table>
@@ -376,13 +503,38 @@
                     </div>
 
                     <div class="form-group">
-                        <label>Dosen</label>
-                        <select name="dosens" id="f_dosens" required></select>
+                        <label>Dosen 1</label>
+                        <select name="dosens" id="f_dosens_1" required></select>
                     </div>
 
                     <div class="form-group">
-                        <label>Laboran</label>
-                        <select name="laborans" id="f_laborans" required></select>
+                        <label>Dosen 2</label>
+                        <select name="dosens" id="f_dosens_2" required></select>
+                    </div>
+
+                    <div class="form-group" id="dynamic-dosen-container">
+                        <label style="display:flex; justify-content:space-between;">
+                            <span>Dosen 3 (Opsional)</span>
+                            <span style="color:var(--danger); cursor:pointer; font-size:0.8rem;" onclick="removeDynamicDosen()">Hapus</span>
+                        </label>
+                        <select name="dosens" id="f_dosens_3"></select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Laboran 1</label>
+                        <select name="laborans" id="f_laborans_1" required></select>
+                    </div>
+
+                    <div class="form-group" id="dynamic-laboran-container">
+                        <label style="display:flex; justify-content:space-between;">
+                            <span>Laboran 2 (Opsional)</span>
+                            <span style="color:var(--danger); cursor:pointer; font-size:0.8rem;" onclick="removeDynamicLaboran()">Hapus</span>
+                        </label>
+                        <select name="laborans" id="f_laborans_2"></select>
+                    </div>
+                    
+                    <div class="form-group full" id="btn-add-dynamic-container" style="display:none; text-align:right;">
+                        <button type="button" class="btn btn-warning" style="font-size:0.8rem; padding: 0.4rem 0.8rem;" onclick="restoreDynamicFields()">+ Kembalikan Input (Dosen 3 / Laboran)</button>
                     </div>
 
                     <div class="form-group">
@@ -449,11 +601,27 @@
         </div>
     </div>
 
+    <!-- Modal Detail -->
+    <div class="modal-overlay" id="detail-modal-overlay">
+        <div class="modal">
+            <h3>Detail Jadwal</h3>
+            <div id="detail-content" style="line-height: 1.6;">
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-cancel" onclick="document.getElementById('detail-modal-overlay').classList.remove('active')">Tutup</button>
+            </div>
+        </div>
+    </div>
+
     <script>
+        const LOGIN_URL = '/login';
+
         // State
         let masterData = null;
         let schedules = [];
+        let displayedSchedules = [];
         let editId = null;
+        let isAuthenticated = false;
 
         // DOM Elements
         const tableBody = document.getElementById('table-body');
@@ -464,23 +632,130 @@
         const dataForm = document.getElementById('data-form');
         const btnAdd = document.getElementById('btn-add');
         const btnCloseModal = document.getElementById('btn-close-modal');
+        const authActionBtn = document.getElementById('auth-action-btn');
+        const btnSearchFilter = document.getElementById('btn-search-filter');
+        const btnResetFilter = document.getElementById('btn-reset-filter');
 
         // Form selects
         const f_periode = document.getElementById('f_periode_id');
         const f_prodi = document.getElementById('f_prodi_id');
         const f_makul = document.getElementById('f_makul_id');
-        const f_dosens = document.getElementById('f_dosens');
-        const f_laborans = document.getElementById('f_laborans');
         const f_theory = document.getElementById('f_theory_room_id');
         const f_practice = document.getElementById('f_practice_room_id');
+        const filterPeriode = document.getElementById('filter-periode');
+        const filterDay = document.getElementById('filter-day');
+        const filterProdi = document.getElementById('filter-prodi');
+        const filterMakul = document.getElementById('filter-makul');
+        const filterScheduleType = document.getElementById('filter-schedule-type');
+        const filterLaboran = document.getElementById('filter-laboran');
 
-        // Initialization
+        function getAccessToken() {
+            return sessionStorage.getItem('access_token') || localStorage.getItem('access_token');
+        }
+
+        function storeTokens(accessToken, refreshToken = null) {
+            sessionStorage.setItem('access_token', accessToken);
+            if (refreshToken) {
+                sessionStorage.setItem('refresh_token', refreshToken);
+            }
+
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+        }
+
+        function clearTokens() {
+            sessionStorage.removeItem('access_token');
+            sessionStorage.removeItem('refresh_token');
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+        }
+
+        function authHeaders(extraHeaders = {}) {
+            return {
+                ...extraHeaders,
+                'Authorization': `Bearer ${getAccessToken()}`,
+                'Accept': 'application/json'
+            };
+        }
+
+        async function bootstrapAuth() {
+            const token = getAccessToken();
+
+            if (!token) {
+                updateAuthUI(false);
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/v1/auth/me', {
+                    headers: authHeaders()
+                });
+
+                if (!response.ok) {
+                    clearTokens();
+                    updateAuthUI(false);
+                    return;
+                }
+
+                storeTokens(token);
+                updateAuthUI(true);
+            } catch (error) {
+                clearTokens();
+                updateAuthUI(false);
+            }
+        }
+
+        function updateAuthUI(authenticated) {
+            isAuthenticated = authenticated;
+            btnAdd.disabled = !authenticated;
+            btnAdd.textContent = authenticated ? '+ Tambah Jadwal' : 'Login untuk Mengelola Jadwal';
+            authActionBtn.textContent = authenticated ? '🚪 Sign Out' : '🔐 Sign In';
+            renderTable();
+        }
+
+        function requireAuthOrRedirect() {
+            if (!isAuthenticated) {
+                window.location.href = LOGIN_URL;
+                return false;
+            }
+
+            return true;
+        }
+
         init();
 
+        function removeDynamicDosen() {
+            document.getElementById('dynamic-dosen-container').style.display = 'none';
+            document.getElementById('f_dosens_3').value = '';
+            checkDynamicButtons();
+        }
+        function removeDynamicLaboran() {
+            document.getElementById('dynamic-laboran-container').style.display = 'none';
+            document.getElementById('f_laborans_2').value = '';
+            checkDynamicButtons();
+        }
+        function restoreDynamicFields() {
+            document.getElementById('dynamic-dosen-container').style.display = 'block';
+            document.getElementById('dynamic-laboran-container').style.display = 'block';
+            checkDynamicButtons();
+        }
+        function checkDynamicButtons() {
+            const dContainer = document.getElementById('dynamic-dosen-container').style.display;
+            const lContainer = document.getElementById('dynamic-laboran-container').style.display;
+            if (dContainer === 'none' || lContainer === 'none') {
+                document.getElementById('btn-add-dynamic-container').style.display = 'block';
+            } else {
+                document.getElementById('btn-add-dynamic-container').style.display = 'none';
+            }
+        }
+
         async function init() {
+            await bootstrapAuth();
             btnAdd.addEventListener('click', () => openModal());
             btnCloseModal.addEventListener('click', closeModal);
             dataForm.addEventListener('submit', handleFormSubmit);
+            btnSearchFilter.addEventListener('click', applyFilters);
+            btnResetFilter.addEventListener('click', resetFilters);
 
             await fetchMasterData();
             await fetchSchedules();
@@ -492,12 +767,35 @@
                 masterData = await res.json();
                 
                 // Populate Dropdowns
-                f_periode.innerHTML = masterData.periodes.map(p => `<option value="${p.id}">${p.periode}</option>`).join('');
+                f_periode.innerHTML = masterData.periodes
+                    .filter(p => p.status === 'aktif')
+                    .map(p => `<option value="${p.id}">${p.periode}</option>`)
+                    .join('');
+                
                 f_prodi.innerHTML = masterData.prodis.map(p => `<option value="${p.id}">${p.nama_prodi}</option>`).join('');
                 f_makul.innerHTML = masterData.makuls.map(m => `<option value="${m.id}">${m.nama_makul}</option>`).join('');
+
+                filterPeriode.innerHTML = '<option value="">Semua Periode</option>' + masterData.periodes
+                    .map(p => `<option value="${p.id}">${p.periode}</option>`)
+                    .join('');
+                filterProdi.innerHTML = '<option value="">Semua Program Studi</option>' + masterData.prodis
+                    .map(p => `<option value="${p.id}">${p.nama_prodi}</option>`)
+                    .join('');
+                filterMakul.innerHTML = '<option value="">Semua Mata Kuliah</option>' + masterData.makuls
+                    .map(m => `<option value="${m.id}">${m.nama_makul}</option>`)
+                    .join('');
                 
-                f_dosens.innerHTML = masterData.dosens.map(d => `<option value="${d.id}">${d.nama_dosen}</option>`).join('');
-                f_laborans.innerHTML = masterData.laborans.map(l => `<option value="${l.id}">${l.nama_laboran}</option>`).join('');
+                const dosenOptions = '<option value="">-- Pilih Dosen --</option>' + masterData.dosens.map(d => `<option value="${d.id}">${d.nama_dosen}</option>`).join('');
+                document.getElementById('f_dosens_1').innerHTML = dosenOptions;
+                document.getElementById('f_dosens_2').innerHTML = dosenOptions;
+                document.getElementById('f_dosens_3').innerHTML = dosenOptions;
+                
+                const laboranOptions = '<option value="">-- Pilih Laboran --</option>' + masterData.laborans.map(l => `<option value="${l.id}">${l.nama_laboran}</option>`).join('');
+                document.getElementById('f_laborans_1').innerHTML = laboranOptions;
+                document.getElementById('f_laborans_2').innerHTML = laboranOptions;
+                filterLaboran.innerHTML = '<option value="">Semua Laboran</option>' + masterData.laborans
+                    .map(l => `<option value="${l.id}">${l.nama_laboran}</option>`)
+                    .join('');
                 
                 const teoriRooms = masterData.ruangans.filter(r => r.jenis_ruangan === 'teori');
                 const praktikRooms = masterData.ruangans.filter(r => r.jenis_ruangan === 'praktik');
@@ -505,7 +803,7 @@
                 f_theory.innerHTML = '<option value="">-- Pilih Ruang Teori --</option>' + teoriRooms.map(r => `<option value="${r.id}">${r.nama_ruangan}</option>`).join('');
                 f_practice.innerHTML = '<option value="">-- Pilih Ruang Praktik --</option>' + praktikRooms.map(r => `<option value="${r.id}">${r.nama_ruangan}</option>`).join('');
 
-                btnAdd.disabled = false;
+                btnAdd.disabled = !isAuthenticated;
             } catch (err) {
                 console.error("Failed to load master data", err);
                 alert("Gagal memuat Master Data.");
@@ -516,9 +814,10 @@
             loadingIndicator.style.display = 'block';
             tableBody.innerHTML = '';
             try {
-                const res = await fetch('/api/v1/schedules');
+                const res = await fetch('/api/v1/jadwal');
                 const json = await res.json();
                 schedules = json.data;
+                displayedSchedules = [...schedules];
                 renderTable();
             } catch (err) {
                 console.error(err);
@@ -529,12 +828,14 @@
         }
 
         function renderTable() {
-            if (schedules.length === 0) {
+            const rows = displayedSchedules;
+
+            if (rows.length === 0) {
                 tableBody.innerHTML = `<tr><td colspan="8" style="text-align:center;">Tidak ada jadwal.</td></tr>`;
                 return;
             }
 
-            tableBody.innerHTML = schedules.map(item => {
+            tableBody.innerHTML = rows.map(item => {
                 const dosenNames = item.dosens ? item.dosens.map(d => d.nama_dosen).join('<br>') : '-';
                 
                 let ruanganStr = '';
@@ -544,6 +845,17 @@
                     if (item.practice_room) ruanganStr += item.practice_room.nama_ruangan + ' (P)';
                 }
                 if(!ruanganStr) ruanganStr = '-';
+
+                const periode = masterData.periodes.find(p => p.id == item.periode_id);
+                const isNonaktif = periode && periode.status === 'nonaktif';
+                
+                let actionsHtml = `<button class="btn btn-info btn-detail" data-id="${item.id}">Detail</button>`;
+                if (isAuthenticated && !isNonaktif) {
+                    actionsHtml += `
+                        <button class="btn btn-warning btn-edit" data-id="${item.id}">Edit</button>
+                        <button class="btn btn-danger btn-delete" data-id="${item.id}">Delete</button>
+                    `;
+                }
 
                 return `
                 <tr>
@@ -555,14 +867,18 @@
                     <td>${item.schedule_type} / ${item.status}</td>
                     <td>${ruanganStr}</td>
                     <td>
-                        <button class="btn btn-warning btn-edit" data-id="${item.id}">Edit</button>
-                        <button class="btn btn-danger btn-delete" data-id="${item.id}">Delete</button>
+                        <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                            ${actionsHtml}
+                        </div>
                     </td>
                 </tr>
                 `;
             }).join('');
 
             // Attach listeners
+            document.querySelectorAll('.btn-detail').forEach(btn => {
+                btn.addEventListener('click', (e) => openDetailModal(e.target.dataset.id));
+            });
             document.querySelectorAll('.btn-edit').forEach(btn => {
                 btn.addEventListener('click', (e) => openModal(e.target.dataset.id));
             });
@@ -575,11 +891,88 @@
             });
         }
 
+        function applyFilters() {
+            const filters = {
+                periodeId: filterPeriode.value,
+                day: filterDay.value,
+                prodiId: filterProdi.value,
+                makulId: filterMakul.value,
+                scheduleType: filterScheduleType.value,
+                laboranId: filterLaboran.value,
+            };
+
+            displayedSchedules = schedules.filter(item => {
+                const matchPeriode = !filters.periodeId || String(item.periode_id) === filters.periodeId;
+                const matchDay = !filters.day || item.day === filters.day;
+                const matchProdi = !filters.prodiId || String(item.prodi_id) === filters.prodiId;
+                const matchMakul = !filters.makulId || String(item.makul_id) === filters.makulId;
+                const matchScheduleType = !filters.scheduleType || item.schedule_type === filters.scheduleType;
+                const matchLaboran = !filters.laboranId || (item.laborans || []).some(laboran => String(laboran.id) === filters.laboranId);
+
+                return matchPeriode
+                    && matchDay
+                    && matchProdi
+                    && matchMakul
+                    && matchScheduleType
+                    && matchLaboran;
+            });
+
+            renderTable();
+        }
+
+        function resetFilters() {
+            filterPeriode.value = '';
+            filterDay.value = '';
+            filterProdi.value = '';
+            filterMakul.value = '';
+            filterScheduleType.value = '';
+            filterLaboran.value = '';
+            displayedSchedules = [...schedules];
+            renderTable();
+        }
+
+        function openDetailModal(id) {
+            const item = schedules.find(s => s.id == id);
+            if (!item) return;
+
+            const dosenNames = item.dosens && item.dosens.length > 0 ? item.dosens.map(d => d.nama_dosen).join(', ') : '-';
+            const laboranNames = item.laborans && item.laborans.length > 0 ? item.laborans.map(l => l.nama_laboran).join(', ') : '-';
+            
+            let ruanganStr = '';
+            if (item.status === 'online') ruanganStr = 'Online';
+            else {
+                if (item.theory_room) ruanganStr += item.theory_room.nama_ruangan + ' (Teori)<br>';
+                if (item.practice_room) ruanganStr += item.practice_room.nama_ruangan + ' (Praktik)';
+            }
+            if (!ruanganStr) ruanganStr = '-';
+
+            const content = `
+                <table style="width:100%; border:none;">
+                    <tr style="background:transparent;"><td style="width:30%; font-weight:600; padding:0.5rem 0; border:none;">Mata Kuliah</td><td style="border:none;">: ${item.makul ? item.makul.nama_makul : '-'}</td></tr>
+                    <tr style="background:transparent;"><td style="font-weight:600; padding:0.5rem 0; border:none;">Program Studi</td><td style="border:none;">: ${item.prodi ? item.prodi.nama_prodi : '-'}</td></tr>
+                    <tr style="background:transparent;"><td style="font-weight:600; padding:0.5rem 0; border:none;">Dosen</td><td style="border:none;">: ${dosenNames}</td></tr>
+                    <tr style="background:transparent;"><td style="font-weight:600; padding:0.5rem 0; border:none;">Laboran</td><td style="border:none;">: ${laboranNames}</td></tr>
+                    <tr style="background:transparent;"><td style="font-weight:600; padding:0.5rem 0; border:none;">Kelas</td><td style="border:none;">: ${item.class}</td></tr>
+                    <tr style="background:transparent;"><td style="font-weight:600; padding:0.5rem 0; border:none;">Hari</td><td style="border:none;">: ${item.day}</td></tr>
+                    <tr style="background:transparent;"><td style="font-weight:600; padding:0.5rem 0; border:none;">Waktu</td><td style="border:none;">: ${item.start_time.substr(0,5)} - ${item.end_time.substr(0,5)}</td></tr>
+                    <tr style="background:transparent;"><td style="font-weight:600; padding:0.5rem 0; border:none;">Ruangan</td><td style="border:none;">: ${ruanganStr}</td></tr>
+                    <tr style="background:transparent;"><td style="font-weight:600; padding:0.5rem 0; border:none;">Tipe / Status</td><td style="border:none;">: ${item.schedule_type} / ${item.status}</td></tr>
+                </table>
+            `;
+            document.getElementById('detail-content').innerHTML = content;
+            document.getElementById('detail-modal-overlay').classList.add('active');
+        }
+
         function openModal(id = null) {
+            if (!requireAuthOrRedirect()) {
+                return;
+            }
+
             editId = id;
             modalTitle.textContent = editId ? `Edit Jadwal` : `Tambah Jadwal`;
             
             dataForm.reset();
+            restoreDynamicFields();
 
             if (editId) {
                 const item = schedules.find(s => s.id == editId);
@@ -596,14 +989,25 @@
                     document.getElementById('f_theory_room_id').value = item.theory_room_id || '';
                     document.getElementById('f_practice_room_id').value = item.practice_room_id || '';
 
-                    // Select single dosen
                     if (item.dosens && item.dosens.length > 0) {
-                        f_dosens.value = item.dosens[0].id;
+                        document.getElementById('f_dosens_1').value = item.dosens[0].id || '';
+                    }
+                    if (item.dosens && item.dosens.length > 1) {
+                        document.getElementById('f_dosens_2').value = item.dosens[1].id || '';
+                    }
+                    if (item.dosens && item.dosens.length > 2) {
+                        document.getElementById('f_dosens_3').value = item.dosens[2].id || '';
+                    } else {
+                        removeDynamicDosen();
                     }
 
-                    // Select single laboran
                     if (item.laborans && item.laborans.length > 0) {
-                        f_laborans.value = item.laborans[0].id;
+                        document.getElementById('f_laborans_1').value = item.laborans[0].id || '';
+                    }
+                    if (item.laborans && item.laborans.length > 1) {
+                        document.getElementById('f_laborans_2').value = item.laborans[1].id || '';
+                    } else {
+                        removeDynamicLaboran();
                     }
                 }
             }
@@ -620,6 +1024,27 @@
         async function handleFormSubmit(e) {
             e.preventDefault();
 
+            if (!requireAuthOrRedirect()) {
+                return;
+            }
+
+            const d1 = document.getElementById('f_dosens_1').value;
+            const d2 = document.getElementById('f_dosens_2').value;
+            const d3 = document.getElementById('f_dosens_3').value;
+            const selectedDosens = [d1, d2, d3].filter(v => v !== '');
+            if (new Set(selectedDosens).size !== selectedDosens.length) {
+                alert('Dosen 1, 2, dan 3 tidak boleh orang yang sama.');
+                return;
+            }
+
+            const l1 = document.getElementById('f_laborans_1').value;
+            const l2 = document.getElementById('f_laborans_2').value;
+            const selectedLaborans = [l1, l2].filter(v => v !== '');
+            if (new Set(selectedLaborans).size !== selectedLaborans.length) {
+                alert('Laboran 1 dan 2 tidak boleh orang yang sama.');
+                return;
+            }
+
             const formData = new FormData(dataForm);
             const data = Object.fromEntries(formData.entries());
 
@@ -630,22 +1055,29 @@
             data.theory_room_id = data.theory_room_id ? parseInt(data.theory_room_id) : null;
             data.practice_room_id = data.practice_room_id ? parseInt(data.practice_room_id) : null;
             
-            // Backend requires dosens and laborans as arrays
-            data.dosens = data.dosens ? [parseInt(data.dosens)] : [];
-            data.laborans = data.laborans ? [parseInt(data.laborans)] : [];
+            const rawDosens = formData.getAll('dosens').filter(x => x).map(x => parseInt(x));
+            data.dosens = [...new Set(rawDosens)]; // Remove duplicates
+            
+            const rawLaborans = formData.getAll('laborans').filter(x => x).map(x => parseInt(x));
+            data.laborans = [...new Set(rawLaborans)]; // Remove duplicates
 
             try {
-                const url = editId ? `/api/v1/schedules/${editId}` : `/api/v1/schedules`;
+                const url = editId ? `/api/v1/jadwal/${editId}` : `/api/v1/jadwal`;
                 const method = editId ? 'PUT' : 'POST';
 
                 const response = await fetch(url, {
                     method: method,
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
+                    headers: authHeaders({
+                        'Content-Type': 'application/json'
+                    }),
                     body: JSON.stringify(data)
                 });
+
+                if (response.status === 401) {
+                    clearTokens();
+                    window.location.href = LOGIN_URL;
+                    return;
+                }
 
                 const result = await response.json();
 
@@ -663,11 +1095,21 @@
         }
 
         async function deleteRecord(id) {
+            if (!requireAuthOrRedirect()) {
+                return;
+            }
+
             try {
-                const response = await fetch(`/api/v1/schedules/${id}`, {
+                const response = await fetch(`/api/v1/jadwal/${id}`, {
                     method: 'DELETE',
-                    headers: { 'Accept': 'application/json' }
+                    headers: authHeaders()
                 });
+
+                if (response.status === 401) {
+                    clearTokens();
+                    window.location.href = LOGIN_URL;
+                    return;
+                }
 
                 if (!response.ok) {
                     const result = await response.json();
@@ -678,8 +1120,27 @@
                 fetchSchedules();
             } catch (err) {
                 console.error(err);
-                alert('Terjadi kesalahan.');
             }
+        }
+
+        async function handleAuthAction() {
+            if (!isAuthenticated) {
+                window.location.href = LOGIN_URL;
+                return;
+            }
+
+            const token = getAccessToken();
+            if (token) {
+                try {
+                    await fetch('/api/v1/auth/logout', {
+                        method: 'POST',
+                        headers: authHeaders(),
+                    });
+                } catch (_) {}
+            }
+            clearTokens();
+            updateAuthUI(false);
+            window.location.href = '/jadwal';
         }
 
     </script>

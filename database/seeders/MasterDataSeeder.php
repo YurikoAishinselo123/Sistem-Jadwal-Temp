@@ -78,14 +78,12 @@ class MasterDataSeeder extends Seeder
                 'status'          => 'aktif',
                 'tanggal_mulai'   => '2025-09-01',
                 'tanggal_selesai' => '2026-01-31',
-                'is_locked'       => false,
             ],
             [
                 'periode'         => 'Genap 2024/2025',
                 'status'          => 'nonaktif',
                 'tanggal_mulai'   => '2025-02-01',
                 'tanggal_selesai' => '2025-06-30',
-                'is_locked'       => true,
             ],
         ];
         foreach ($periodes as $data) {
