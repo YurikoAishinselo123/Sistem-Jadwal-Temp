@@ -8,15 +8,16 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('assistants', function (Blueprint $table) {
+        Schema::create('prodis', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
+            $table->string('kode_prodi')->unique();
+            $table->string('nama_prodi')->unique();
             $table->timestamps();
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('assistants');
+        Schema::dropIfExists('prodis');
     }
 };

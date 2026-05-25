@@ -2,48 +2,94 @@
 
 namespace Database\Seeders;
 
+use App\Models\Dosen;
+use App\Models\Laboran;
+use App\Models\Makul;
+use App\Models\Periode;
+use App\Models\Prodi;
+use App\Models\Ruangan;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 
 class MasterDataSeeder extends Seeder
 {
     public function run(): void
     {
-        DB::table('study_programs')->insert([
-            ['name' => 'Teknik Informatika', 'created_at' => now(), 'updated_at' => now()],
-            ['name' => 'Sistem Informasi', 'created_at' => now(), 'updated_at' => now()],
-            ['name' => 'Teknik Komputer', 'created_at' => now(), 'updated_at' => now()],
-        ]);
+        // ─── Makul ────────────────────────────────────────────
+        $makuls = [
+            ['kode_makul' => 'MK001', 'nama_makul' => 'Pemrograman Web',          'jumlah_sesi_teori' => 2, 'jumlah_sesi_praktek' => 3],
+            ['kode_makul' => 'MK002', 'nama_makul' => 'Basis Data',               'jumlah_sesi_teori' => 2, 'jumlah_sesi_praktek' => 3],
+            ['kode_makul' => 'MK003', 'nama_makul' => 'Algoritma dan Struktur Data', 'jumlah_sesi_teori' => 3, 'jumlah_sesi_praktek' => 0],
+            ['kode_makul' => 'MK004', 'nama_makul' => 'Jaringan Komputer',        'jumlah_sesi_teori' => 2, 'jumlah_sesi_praktek' => 6],
+            ['kode_makul' => 'MK005', 'nama_makul' => 'Sistem Operasi',           'jumlah_sesi_teori' => 2, 'jumlah_sesi_praktek' => 3],
+        ];
+        foreach ($makuls as $data) {
+            Makul::firstOrCreate(['kode_makul' => $data['kode_makul']], $data);
+        }
 
-        DB::table('courses')->insert([
-            ['name' => 'Pemrograman Web', 'created_at' => now(), 'updated_at' => now()],
-            ['name' => 'Basis Data', 'created_at' => now(), 'updated_at' => now()],
-            ['name' => 'Jaringan Komputer', 'created_at' => now(), 'updated_at' => now()],
-            ['name' => 'Algoritma & Pemrograman', 'created_at' => now(), 'updated_at' => now()],
-            ['name' => 'Kecerdasan Buatan', 'created_at' => now(), 'updated_at' => now()],
-        ]);
+        // ─── Dosen ────────────────────────────────────────────
+        $dosens = [
+            ['kode_dosen' => 'DSN001', 'nama_dosen' => 'Dr. Ahmad Fauzi, M.Kom'],
+            ['kode_dosen' => 'DSN002', 'nama_dosen' => 'Ir. Budi Santoso, M.T.'],
+            ['kode_dosen' => 'DSN003', 'nama_dosen' => 'Dra. Cahyani Putri, M.Pd.'],
+            ['kode_dosen' => 'DSN004', 'nama_dosen' => 'Dr. Dian Kusuma, S.T., M.T.'],
+            ['kode_dosen' => 'DSN005', 'nama_dosen' => 'Eko Prasetyo, S.Kom., M.Cs.'],
+        ];
+        foreach ($dosens as $data) {
+            Dosen::firstOrCreate(['kode_dosen' => $data['kode_dosen']], $data);
+        }
 
-        DB::table('rooms')->insert([
-            ['name' => 'Lab Komputer 1', 'created_at' => now(), 'updated_at' => now()],
-            ['name' => 'Lab Komputer 2', 'created_at' => now(), 'updated_at' => now()],
-            ['name' => 'Ruang 301', 'created_at' => now(), 'updated_at' => now()],
-            ['name' => 'Ruang 302', 'created_at' => now(), 'updated_at' => now()],
-            ['name' => 'Aula Utama', 'created_at' => now(), 'updated_at' => now()],
-        ]);
+        // ─── Laboran ──────────────────────────────────────────
+        $laborans = [
+            ['kode_laboran' => 'LBR001', 'nama_laboran' => 'Fajar Nugroho'],
+            ['kode_laboran' => 'LBR002', 'nama_laboran' => 'Gita Rahayu'],
+            ['kode_laboran' => 'LBR003', 'nama_laboran' => 'Hendra Wijaya'],
+        ];
+        foreach ($laborans as $data) {
+            Laboran::firstOrCreate(['kode_laboran' => $data['kode_laboran']], $data);
+        }
 
-        DB::table('lecturers')->insert([
-            ['name' => 'Dr. Andi Surya, M.T.', 'created_at' => now(), 'updated_at' => now()],
-            ['name' => 'Prof. Budi Santoso, Ph.D.', 'created_at' => now(), 'updated_at' => now()],
-            ['name' => 'Ir. Citra Dewi, M.Sc.', 'created_at' => now(), 'updated_at' => now()],
-            ['name' => 'Dr. Dian Pratama, M.Kom.', 'created_at' => now(), 'updated_at' => now()],
-            ['name' => 'Eko Wibowo, S.T., M.T.', 'created_at' => now(), 'updated_at' => now()],
-        ]);
+        // ─── Prodi ────────────────────────────────────────────
+        $prodis = [
+            ['kode_prodi' => 'TI',  'nama_prodi' => 'Teknik Informatika'],
+            ['kode_prodi' => 'SI',  'nama_prodi' => 'Sistem Informasi'],
+            ['kode_prodi' => 'KA',  'nama_prodi' => 'Komputerisasi Akuntansi'],
+        ];
+        foreach ($prodis as $data) {
+            Prodi::firstOrCreate(['kode_prodi' => $data['kode_prodi']], $data);
+        }
 
-        DB::table('assistants')->insert([
-            ['name' => 'Fauzan Hidayat', 'created_at' => now(), 'updated_at' => now()],
-            ['name' => 'Gita Rahayu', 'created_at' => now(), 'updated_at' => now()],
-            ['name' => 'Hendra Setiawan', 'created_at' => now(), 'updated_at' => now()],
-            ['name' => 'Indah Permata', 'created_at' => now(), 'updated_at' => now()],
-        ]);
+        // ─── Ruangan ──────────────────────────────────────────
+        $ruangans = [
+            ['kode_ruangan' => 'T101', 'nama_ruangan' => 'Ruang Teori 101', 'jenis_ruangan' => 'teori'],
+            ['kode_ruangan' => 'T102', 'nama_ruangan' => 'Ruang Teori 102', 'jenis_ruangan' => 'teori'],
+            ['kode_ruangan' => 'T103', 'nama_ruangan' => 'Ruang Teori 103', 'jenis_ruangan' => 'teori'],
+            ['kode_ruangan' => 'L201', 'nama_ruangan' => 'Lab Komputer 1',  'jenis_ruangan' => 'praktik'],
+            ['kode_ruangan' => 'L202', 'nama_ruangan' => 'Lab Komputer 2',  'jenis_ruangan' => 'praktik'],
+            ['kode_ruangan' => 'L203', 'nama_ruangan' => 'Lab Jaringan',    'jenis_ruangan' => 'praktik'],
+        ];
+        foreach ($ruangans as $data) {
+            Ruangan::firstOrCreate(['kode_ruangan' => $data['kode_ruangan']], $data);
+        }
+
+        // ─── Periode ──────────────────────────────────────────
+        $periodes = [
+            [
+                'periode'         => 'Ganjil 2025/2026',
+                'status'          => 'aktif',
+                'tanggal_mulai'   => '2025-09-01',
+                'tanggal_selesai' => '2026-01-31',
+                'is_locked'       => false,
+            ],
+            [
+                'periode'         => 'Genap 2024/2025',
+                'status'          => 'nonaktif',
+                'tanggal_mulai'   => '2025-02-01',
+                'tanggal_selesai' => '2025-06-30',
+                'is_locked'       => true,
+            ],
+        ];
+        foreach ($periodes as $data) {
+            Periode::firstOrCreate(['periode' => $data['periode']], $data);
+        }
     }
 }

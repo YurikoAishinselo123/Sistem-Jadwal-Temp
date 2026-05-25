@@ -38,8 +38,8 @@ class ScheduleConflictValidator
     {
         $errors = [];
 
-        $errors = array_merge($errors, $this->checkLecturerConflicts($data, $excludeId));
-        $errors = array_merge($errors, $this->checkAssistantConflicts($data, $excludeId));
+        $errors = array_merge($errors, $this->checkDosenConflicts($data, $excludeId));
+        $errors = array_merge($errors, $this->checkLaboranConflicts($data, $excludeId));
         $errors = array_merge($errors, $this->checkRoomConflicts($data, $excludeId));
         $errors = array_merge($errors, $this->checkClassConflicts($data, $excludeId));
 
@@ -69,78 +69,62 @@ class ScheduleConflictValidator
     }
 
     // ────────────────────────────────────────────────
-    // CHECK 1: Dosen (Lecturer) Conflict
+    // CHECK 1: Dosen Conflict
     // ────────────────────────────────────────────────
 
     /**
-     * Checks if any of the provided lecturers already have a class
+     * Checks if any of the provided dosens already have a class
      * at the given day + overlapping time slot.
      *
      * Strategy: whereHas uses an EXISTS subquery — no JOIN, no duplication.
-     * The EXISTS subquery hits idx_sl_lecturer_schedule on the pivot table.
-     *
-     * SQL equivalent:
-     *   SELECT 1 FROM schedules s
-     *   WHERE s.day = :day
-     *     AND s.start_time < :end AND s.end_time > :start
-     *     AND s.id != :excludeId
-     *     AND EXISTS (
-     *       SELECT 1 FROM schedule_lecturer sl
-     *       WHERE sl.schedule_id = s.id
-     *         AND sl.lecturer_id IN (:lecturerIds)
-     *     )
+     * The EXISTS subquery hits idx_sd_dosen_schedule on the pivot table.
      */
-    private function checkLecturerConflicts(array $data, ?int $excludeId): array
+    private function checkDosenConflicts(array $data, ?int $excludeId): array
     {
         $conflicts = $this->overlapQuery($data['day'], $data['start_time'], $data['end_time'], $excludeId)
-            ->whereHas('lecturers', fn($q) => $q->whereIn('lecturer_id', $data['lecturers']))
-            ->with('lecturers:id,name') // fetch names for a clear error message
+            ->whereHas('dosens', fn($q) => $q->whereIn('dosen_id', $data['dosens']))
+            ->with('dosens:id,nama_dosen')
             ->get(['id', 'day', 'start_time', 'end_time']);
 
         if ($conflicts->isEmpty()) {
             return [];
         }
 
-        // Identify exactly which lecturers are conflicting
-        $conflictingLecturerIds = $conflicts->flatMap(fn($s) => $s->lecturers->pluck('id'))->unique();
-        $conflictingNames = collect($data['lecturers'])
-            ->filter(fn($id) => $conflictingLecturerIds->contains($id));
-
-        $first        = $conflicts->first();
-        $lecturerList = $conflicts->flatMap(fn($s) => $s->lecturers->pluck('name'))->unique()->implode(', ');
+        $first      = $conflicts->first();
+        $dosenList  = $conflicts->flatMap(fn($s) => $s->dosens->pluck('nama_dosen'))->unique()->implode(', ');
 
         return [
-            'lecturers' => [
-                "Konflik dosen: {$lecturerList} sudah terjadwal pada hari {$first->day} "
+            'dosens' => [
+                "Konflik dosen: {$dosenList} sudah terjadwal pada hari {$first->day} "
                 . "pukul {$this->fmt($first->start_time)}–{$this->fmt($first->end_time)}.",
             ],
         ];
     }
 
     // ────────────────────────────────────────────────
-    // CHECK 2: Laboran (Assistant) Conflict
+    // CHECK 2: Laboran Conflict
     // ────────────────────────────────────────────────
 
     /**
-     * Same strategy as lecturer conflict, but for the schedule_assistant pivot.
+     * Same strategy as dosen conflict, but for the schedule_laboran pivot.
      */
-    private function checkAssistantConflicts(array $data, ?int $excludeId): array
+    private function checkLaboranConflicts(array $data, ?int $excludeId): array
     {
         $conflicts = $this->overlapQuery($data['day'], $data['start_time'], $data['end_time'], $excludeId)
-            ->whereHas('assistants', fn($q) => $q->whereIn('assistant_id', $data['assistants']))
-            ->with('assistants:id,name')
+            ->whereHas('laborans', fn($q) => $q->whereIn('laboran_id', $data['laborans']))
+            ->with('laborans:id,nama_laboran')
             ->get(['id', 'day', 'start_time', 'end_time']);
 
         if ($conflicts->isEmpty()) {
             return [];
         }
 
-        $first         = $conflicts->first();
-        $assistantList = $conflicts->flatMap(fn($s) => $s->assistants->pluck('name'))->unique()->implode(', ');
+        $first        = $conflicts->first();
+        $laboranList  = $conflicts->flatMap(fn($s) => $s->laborans->pluck('nama_laboran'))->unique()->implode(', ');
 
         return [
-            'assistants' => [
-                "Konflik laboran: {$assistantList} sudah terjadwal pada hari {$first->day} "
+            'laborans' => [
+                "Konflik laboran: {$laboranList} sudah terjadwal pada hari {$first->day} "
                 . "pukul {$this->fmt($first->start_time)}–{$this->fmt($first->end_time)}.",
             ],
         ];
@@ -153,14 +137,6 @@ class ScheduleConflictValidator
     /**
      * Checks if the theory or practice room is already booked during the
      * overlapping time slot.
-     *
-     * Strategy: Uses a single WHERE clause with OR to check both room columns
-     * in one query, leveraging the two separate indexes:
-     *   idx_schedules_theory_room_day  (day, theory_room_id)
-     *   idx_schedules_practice_room_day (day, practice_room_id)
-     *
-     * Only runs if at least one room is provided (null rooms are skipped for
-     * Online schedules where rooms are optional).
      */
     private function checkRoomConflicts(array $data, ?int $excludeId): array
     {
@@ -177,14 +153,14 @@ class ScheduleConflictValidator
                 $q->whereIn('theory_room_id',   $roomIds)
                   ->orWhereIn('practice_room_id', $roomIds);
             })
-            ->with(['theoryRoom:id,name', 'practiceRoom:id,name'])
+            ->with(['theoryRoom:id,nama_ruangan', 'practiceRoom:id,nama_ruangan'])
             ->first(['id', 'day', 'start_time', 'end_time', 'theory_room_id', 'practice_room_id']);
 
         if (!$conflict) {
             return [];
         }
 
-        $roomName = $conflict->theoryRoom?->name ?? $conflict->practiceRoom?->name ?? 'Ruangan';
+        $roomName = $conflict->theoryRoom?->nama_ruangan ?? $conflict->practiceRoom?->nama_ruangan ?? 'Ruangan';
 
         return [
             'theory_room_id' => [
@@ -199,17 +175,16 @@ class ScheduleConflictValidator
     // ────────────────────────────────────────────────
 
     /**
-     * Checks if the same class (e.g. "Kelas A" of course X) already has a
-     * schedule that overlaps with the requested time.
+     * Checks if the same class of makul X already has a schedule that
+     * overlaps with the requested time.
      *
-     * Strategy: Narrow query with idx_schedules_class_day (day, course_id, class)
-     * then apply the time overlap filter on the pre-narrowed result set.
+     * Strategy: Narrow query with idx_schedules_class_day (day, makul_id, class)
      */
     private function checkClassConflicts(array $data, ?int $excludeId): array
     {
         $conflict = $this->overlapQuery($data['day'], $data['start_time'], $data['end_time'], $excludeId)
-            ->where('course_id', $data['course_id'])
-            ->where('class',     $data['class'])
+            ->where('makul_id', $data['makul_id'])
+            ->where('class',    $data['class'])
             ->first(['id', 'day', 'start_time', 'end_time', 'class']);
 
         if (!$conflict) {
@@ -218,7 +193,7 @@ class ScheduleConflictValidator
 
         return [
             'class' => [
-                "Konflik kelas: Kelas {$conflict->class} untuk mata kuliah ini sudah dijadwalkan "
+                "Konflik kelas: Kelas {$conflict->class} untuk makul ini sudah dijadwalkan "
                 . "pada hari {$conflict->day} pukul "
                 . "{$this->fmt($conflict->start_time)}–{$this->fmt($conflict->end_time)}.",
             ],

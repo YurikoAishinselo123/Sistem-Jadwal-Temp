@@ -8,16 +8,16 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('schedule_lecturer', function (Blueprint $table) {
+        Schema::create('laborans', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('schedule_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('lecturer_id')->constrained()->cascadeOnDelete();
+            $table->string('kode_laboran')->unique();
+            $table->string('nama_laboran')->unique();
             $table->timestamps();
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('schedule_lecturer');
+        Schema::dropIfExists('laborans');
     }
 };

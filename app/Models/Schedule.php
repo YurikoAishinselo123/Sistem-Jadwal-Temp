@@ -13,33 +13,38 @@ class Schedule extends Model
 
     protected $guarded = [];
 
-    public function studyProgram(): BelongsTo
+    public function periode(): BelongsTo
     {
-        return $this->belongsTo(StudyProgram::class);
+        return $this->belongsTo(Periode::class);
     }
 
-    public function course(): BelongsTo
+    public function prodi(): BelongsTo
     {
-        return $this->belongsTo(Course::class);
+        return $this->belongsTo(Prodi::class);
+    }
+
+    public function makul(): BelongsTo
+    {
+        return $this->belongsTo(Makul::class);
     }
 
     public function theoryRoom(): BelongsTo
     {
-        return $this->belongsTo(Room::class, 'theory_room_id');
+        return $this->belongsTo(Ruangan::class, 'theory_room_id');
     }
 
     public function practiceRoom(): BelongsTo
     {
-        return $this->belongsTo(Room::class, 'practice_room_id');
+        return $this->belongsTo(Ruangan::class, 'practice_room_id');
     }
 
-    public function lecturers(): BelongsToMany
+    public function dosens(): BelongsToMany
     {
-        return $this->belongsToMany(Lecturer::class, 'schedule_lecturer');
+        return $this->belongsToMany(Dosen::class, 'schedule_dosen');
     }
 
-    public function assistants(): BelongsToMany
+    public function laborans(): BelongsToMany
     {
-        return $this->belongsToMany(Assistant::class, 'schedule_assistant');
+        return $this->belongsToMany(Laboran::class, 'schedule_laboran');
     }
 }

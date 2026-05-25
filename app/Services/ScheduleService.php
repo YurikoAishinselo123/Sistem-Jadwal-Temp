@@ -32,18 +32,17 @@ class ScheduleService
     {
         return DB::transaction(function () use ($data) {
             // Acquire advisory lock on the day/time band before checking conflicts.
-            // Any concurrent transaction trying the same day will queue here.
             $this->acquireScheduleLock($data['day'], $data['start_time'], $data['end_time']);
 
             $this->conflictValidator->validateConflicts($data);
 
             $schedule = Schedule::create($this->extractScheduleData($data));
-            $schedule->lecturers()->attach($data['lecturers']);
-            $schedule->assistants()->attach($data['assistants']);
+            $schedule->dosens()->attach($data['dosens']);
+            $schedule->laborans()->attach($data['laborans']);
 
             return $schedule->load([
-                'lecturers', 'assistants', 'course',
-                'studyProgram', 'theoryRoom', 'practiceRoom',
+                'dosens', 'laborans', 'makul',
+                'prodi', 'theoryRoom', 'practiceRoom', 'periode',
             ]);
         });
     }
@@ -60,12 +59,12 @@ class ScheduleService
             $this->conflictValidator->validateConflicts($data, $schedule->id);
 
             $schedule->update($this->extractScheduleData($data));
-            $schedule->lecturers()->sync($data['lecturers']);
-            $schedule->assistants()->sync($data['assistants']);
+            $schedule->dosens()->sync($data['dosens']);
+            $schedule->laborans()->sync($data['laborans']);
 
             return $schedule->load([
-                'lecturers', 'assistants', 'course',
-                'studyProgram', 'theoryRoom', 'practiceRoom',
+                'dosens', 'laborans', 'makul',
+                'prodi', 'theoryRoom', 'practiceRoom', 'periode',
             ]);
         });
     }
@@ -74,10 +73,8 @@ class ScheduleService
     {
         DB::transaction(function () use ($schedule) {
             // Detach pivot records first, then delete parent
-            // (cascadeOnDelete in migration handles this automatically,
-            //  but explicit detach is clearer and avoids FK edge cases)
-            $schedule->lecturers()->detach();
-            $schedule->assistants()->detach();
+            $schedule->dosens()->detach();
+            $schedule->laborans()->detach();
             $schedule->delete();
         });
     }
@@ -88,12 +85,7 @@ class ScheduleService
 
     /**
      * Pessimistic lock: SELECT all schedules on the same day that touch
-     * the same time window using FOR UPDATE. This causes concurrent
-     * transactions targeting the same slot to WAIT in a queue,
-     * guaranteeing only one can proceed at a time.
-     *
-     * Alternative: DB::statement("SELECT GET_LOCK('schedule_{$day}', 10)")
-     * for a named advisory lock if row-level locking is too broad.
+     * the same time window using FOR UPDATE.
      */
     private function acquireScheduleLock(string $day, string $start, string $end): void
     {
@@ -101,7 +93,7 @@ class ScheduleService
             ->where('day', $day)
             ->where('start_time', '<', $end)
             ->where('end_time',   '>', $start)
-            ->get(['id']); // Fetch IDs to acquire the locks
+            ->get(['id']);
     }
 
     // ────────────────────────────────────────────────────────────
@@ -111,10 +103,10 @@ class ScheduleService
     private function extractScheduleData(array $data): array
     {
         return [
-            'academic_year'    => $data['academic_year'],
+            'periode_id'       => $data['periode_id'],
             'schedule_type'    => $data['schedule_type'],
-            'study_program_id' => $data['study_program_id'],
-            'course_id'        => $data['course_id'],
+            'prodi_id'         => $data['prodi_id'],
+            'makul_id'         => $data['makul_id'],
             'class'            => $data['class'],
             'day'              => $data['day'],
             'start_time'       => $data['start_time'],

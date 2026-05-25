@@ -8,16 +8,16 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('schedule_assistant', function (Blueprint $table) {
-            $table->id();
+        Schema::create('schedule_dosen', function (Blueprint $table) {
             $table->foreignId('schedule_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('assistant_id')->constrained()->cascadeOnDelete();
-            $table->timestamps();
+            $table->foreignId('dosen_id')->constrained('dosens')->cascadeOnDelete();
+            $table->primary(['schedule_id', 'dosen_id']);
+            $table->index(['dosen_id', 'schedule_id'], 'idx_sd_dosen_schedule');
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('schedule_assistant');
+        Schema::dropIfExists('schedule_dosen');
     }
 };
