@@ -26,6 +26,9 @@ class StorePeriodeRequest extends FormRequest
      */
     protected function prepareForValidation(): void
     {
-        $this->mergeIfMissing(['status' => 'aktif']);
+        $this->merge([
+            'status' => 'aktif',
+            'tanggal_selesai' => null,
+        ]);
     }
 }

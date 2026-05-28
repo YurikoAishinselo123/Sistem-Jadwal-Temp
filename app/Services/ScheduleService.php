@@ -32,7 +32,7 @@ class ScheduleService
     {
         return DB::transaction(function () use ($data) {
             // Acquire advisory lock on the day/time band before checking conflicts.
-            $this->acquireScheduleLock($data['day'], $data['start_time'], $data['end_time']);
+            $this->acquireScheduleLock($data['periode_id'], $data['day'], $data['start_time'], $data['end_time']);
 
             $this->conflictValidator->validateConflicts($data);
 
@@ -54,7 +54,7 @@ class ScheduleService
             Schedule::lockForUpdate()->find($schedule->id);
 
             // Lock the time band for the new requested slot
-            $this->acquireScheduleLock($data['day'], $data['start_time'], $data['end_time']);
+            $this->acquireScheduleLock($data['periode_id'], $data['day'], $data['start_time'], $data['end_time']);
 
             $this->conflictValidator->validateConflicts($data, $schedule->id);
 
@@ -79,6 +79,18 @@ class ScheduleService
         });
     }
 
+    public function bulkDeleteSchedules(array $scheduleIds): void
+    {
+        DB::transaction(function () use ($scheduleIds) {
+            $schedules = Schedule::whereIn('id', $scheduleIds)->get();
+            foreach ($schedules as $schedule) {
+                $schedule->dosens()->detach();
+                $schedule->laborans()->detach();
+                $schedule->delete();
+            }
+        });
+    }
+
     // ────────────────────────────────────────────────────────────
     // RACE CONDITION PREVENTION
     // ────────────────────────────────────────────────────────────
@@ -87,9 +99,10 @@ class ScheduleService
      * Pessimistic lock: SELECT all schedules on the same day that touch
      * the same time window using FOR UPDATE.
      */
-    private function acquireScheduleLock(string $day, string $start, string $end): void
+    private function acquireScheduleLock(int $periodeId, string $day, string $start, string $end): void
     {
         Schedule::lockForUpdate()
+            ->where('periode_id', $periodeId)
             ->where('day', $day)
             ->where('start_time', '<', $end)
             ->where('end_time',   '>', $start)

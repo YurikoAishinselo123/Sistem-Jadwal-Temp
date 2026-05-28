@@ -49,4 +49,16 @@ class ScheduleController extends Controller
 
         return response()->json(['message' => 'Jadwal berhasil dihapus.'], 200);
     }
+
+    public function bulkDestroy(\Illuminate\Http\Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'schedule_ids'   => 'required|array',
+            'schedule_ids.*' => 'exists:schedules,id',
+        ]);
+
+        $this->scheduleService->bulkDeleteSchedules($validated['schedule_ids']);
+
+        return response()->json(['message' => 'Jadwal yang dipilih berhasil dihapus.'], 200);
+    }
 }

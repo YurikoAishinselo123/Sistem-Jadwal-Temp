@@ -572,17 +572,31 @@
                 let rowHtml = '';
                 config.columns.forEach(col => {
                     let val = item[col.key];
-                    if (val === true) val = 'Yes';
-                    if (val === false) val = 'No';
+                    if (col.key === 'status') {
+                        if (val === 'aktif') val = 'Aktif';
+                        else if (val === 'nonaktif') val = 'Tidak Aktif';
+                    } else {
+                        if (val === true) val = 'Yes';
+                        if (val === false) val = 'No';
+                    }
                     if (val === null || val === undefined) val = '-';
                     rowHtml += `<td>${val}</td>`;
                 });
 
                 // Actions
+                let extraAction = '';
+                if (currentModule === 'periodes') {
+                    if (item.status === 'aktif') {
+                        extraAction = `<button class="btn btn-warning btn-tutup" style="background:transparent; border:1px solid #f97316; color:#f97316" data-id="${item.id}">Tutup</button>`;
+                    } else if (item.status === 'nonaktif') {
+                        extraAction = `<button class="btn btn-warning btn-buka" style="background:transparent; border:1px solid #10b981; color:#10b981" data-id="${item.id}">Buka</button>`;
+                    }
+                }
                 rowHtml += `
                     <td>
                         <button class="btn btn-warning btn-edit" data-id="${item.id}">Edit</button>
                         <button class="btn btn-danger btn-delete" data-id="${item.id}">Delete</button>
+                        ${extraAction}
                     </td>
                 `;
                 
@@ -606,6 +620,26 @@
                     }
                 });
             });
+
+            // Attach tutup listeners
+            document.querySelectorAll('.btn-tutup').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const id = e.target.dataset.id;
+                    if(confirm('Are you sure you want to close this periode?')) {
+                        await tutupPeriode(id);
+                    }
+                });
+            });
+
+            // Attach buka listeners
+            document.querySelectorAll('.btn-buka').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const id = e.target.dataset.id;
+                    if(confirm('Are you sure you want to open this periode?')) {
+                        await bukaPeriode(id);
+                    }
+                });
+            });
         }
 
         function openModal(id = null) {
@@ -617,6 +651,11 @@
 
             // Generate form fields
             formFields.innerHTML = config.fields.map(field => {
+                // Hide status and tanggal_selesai on Create
+                if (!editId && (field.name === 'status' || field.name === 'tanggal_selesai')) {
+                    return '';
+                }
+
                 let inputHtml = '';
                 let val = item ? (item[field.name] || '') : '';
                 
@@ -731,6 +770,58 @@
             } catch (err) {
                 console.error(err);
                 alert('An error occurred while deleting.');
+            }
+        }
+
+        async function tutupPeriode(id) {
+            try {
+                const response = await fetch(`/api/v1/periodes/${id}/tutup`, {
+                    method: 'POST',
+                    headers: authHeaders()
+                });
+
+                if (response.status === 401) {
+                    clearTokens();
+                    window.location.href = LOGIN_URL;
+                    return;
+                }
+
+                if (!response.ok) {
+                    const result = await response.json();
+                    alert('Error: ' + (result.message || 'Failed to close periode'));
+                    return;
+                }
+                
+                loadData();
+            } catch (err) {
+                console.error(err);
+                alert('An error occurred while closing the periode.');
+            }
+        }
+
+        async function bukaPeriode(id) {
+            try {
+                const response = await fetch(`/api/v1/periodes/${id}/buka`, {
+                    method: 'POST',
+                    headers: authHeaders()
+                });
+
+                if (response.status === 401) {
+                    clearTokens();
+                    window.location.href = LOGIN_URL;
+                    return;
+                }
+
+                if (!response.ok) {
+                    const result = await response.json();
+                    alert('Error: ' + (result.message || 'Failed to open periode'));
+                    return;
+                }
+                
+                loadData();
+            } catch (err) {
+                console.error(err);
+                alert('An error occurred while opening the periode.');
             }
         }
 

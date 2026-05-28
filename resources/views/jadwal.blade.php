@@ -190,6 +190,13 @@
         tr:hover td {
             background: rgba(255, 255, 255, 0.02);
         }
+        
+        input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: var(--danger); /* using danger color since it's for deleting */
+        }
 
         /* Modal */
         .modal-overlay {
@@ -395,7 +402,10 @@
     <main class="main">
         <div class="header">
             <h1>Manajemen Jadwal</h1>
-            <button class="btn" id="btn-add" disabled>+ Tambah Jadwal</button>
+            <div style="display:flex; gap:1rem;">
+                <button class="btn btn-danger" id="btn-bulk-delete" style="display:none;">Hapus Terpilih</button>
+                <button class="btn" id="btn-add" disabled>+ Tambah Jadwal</button>
+            </div>
         </div>
 
         <section class="filter-panel">
@@ -463,6 +473,7 @@
             <table>
                 <thead>
                     <tr>
+                        <th style="width:40px; text-align:center;"><input type="checkbox" id="check-all" onchange="toggleCheckAll(this)"></th>
                         <th>Makul</th>
                         <th>Prodi</th>
                         <th>Dosen</th>
@@ -635,6 +646,7 @@
         const authActionBtn = document.getElementById('auth-action-btn');
         const btnSearchFilter = document.getElementById('btn-search-filter');
         const btnResetFilter = document.getElementById('btn-reset-filter');
+        const btnBulkDelete = document.getElementById('btn-bulk-delete');
 
         // Form selects
         const f_periode = document.getElementById('f_periode_id');
@@ -710,6 +722,16 @@
             btnAdd.disabled = !authenticated;
             btnAdd.textContent = authenticated ? '+ Tambah Jadwal' : 'Login untuk Mengelola Jadwal';
             authActionBtn.textContent = authenticated ? '🚪 Sign Out' : '🔐 Sign In';
+            
+            if(!authenticated && btnBulkDelete) {
+                btnBulkDelete.style.display = 'none';
+            }
+            const checkAll = document.getElementById('check-all');
+            if (checkAll) {
+                checkAll.checked = false;
+                checkAll.disabled = !authenticated;
+            }
+
             renderTable();
         }
 
@@ -723,6 +745,41 @@
         }
 
         init();
+
+        function toggleCheckAll(source) {
+            const checkboxes = document.querySelectorAll('.check-item');
+            checkboxes.forEach(cb => {
+                if(!cb.disabled) {
+                    cb.checked = source.checked;
+                }
+            });
+            updateBulkDeleteButton();
+        }
+
+        function updateBulkDeleteButton() {
+            if (!isAuthenticated) return;
+            const checkedCount = document.querySelectorAll('.check-item:checked').length;
+            if (checkedCount > 0) {
+                btnBulkDelete.style.display = 'inline-block';
+            } else {
+                btnBulkDelete.style.display = 'none';
+                const checkAll = document.getElementById('check-all');
+                if(checkAll) checkAll.checked = false;
+            }
+        }
+
+        if(btnBulkDelete) {
+            btnBulkDelete.addEventListener('click', async () => {
+                const checkedBoxes = document.querySelectorAll('.check-item:checked');
+                const ids = Array.from(checkedBoxes).map(cb => cb.value);
+                
+                if(ids.length === 0) return;
+                
+                if(confirm(`Apakah Anda yakin ingin menghapus ${ids.length} jadwal yang dipilih?`)) {
+                    await bulkDeleteRecords(ids);
+                }
+            });
+        }
 
         function removeDynamicDosen() {
             document.getElementById('dynamic-dosen-container').style.display = 'none';
@@ -767,7 +824,7 @@
                 masterData = await res.json();
                 
                 // Populate Dropdowns
-                f_periode.innerHTML = masterData.periodes
+                f_periode.innerHTML = '<option value="">-- Pilih Periode --</option>' + masterData.periodes
                     .filter(p => p.status === 'aktif')
                     .map(p => `<option value="${p.id}">${p.periode}</option>`)
                     .join('');
@@ -821,17 +878,16 @@
                 renderTable();
             } catch (err) {
                 console.error(err);
-                tableBody.innerHTML = `<tr><td colspan="8" style="text-align:center; color: var(--danger)">Gagal memuat jadwal.</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="9" style="text-align:center; color: var(--danger)">Gagal memuat jadwal.</td></tr>`;
             } finally {
                 loadingIndicator.style.display = 'none';
             }
         }
-
         function renderTable() {
             const rows = displayedSchedules;
 
             if (rows.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="8" style="text-align:center;">Tidak ada jadwal.</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="9" style="text-align:center;">Tidak ada jadwal.</td></tr>`;
                 return;
             }
 
@@ -850,6 +906,8 @@
                 const isNonaktif = periode && periode.status === 'nonaktif';
                 
                 let actionsHtml = `<button class="btn btn-info btn-detail" data-id="${item.id}">Detail</button>`;
+                let checkboxDisabled = (!isAuthenticated || isNonaktif) ? 'disabled' : '';
+
                 if (isAuthenticated && !isNonaktif) {
                     actionsHtml += `
                         <button class="btn btn-warning btn-edit" data-id="${item.id}">Edit</button>
@@ -859,6 +917,9 @@
 
                 return `
                 <tr>
+                    <td style="text-align:center;">
+                        <input type="checkbox" class="check-item" value="${item.id}" onchange="updateBulkDeleteButton()" ${checkboxDisabled}>
+                    </td>
                     <td>${item.makul ? item.makul.nama_makul : '-'}</td>
                     <td>${item.prodi ? item.prodi.nama_prodi : '-'}</td>
                     <td>${dosenNames}</td>
@@ -935,28 +996,74 @@
             const item = schedules.find(s => s.id == id);
             if (!item) return;
 
-            const dosenNames = item.dosens && item.dosens.length > 0 ? item.dosens.map(d => d.nama_dosen).join(', ') : '-';
-            const laboranNames = item.laborans && item.laborans.length > 0 ? item.laborans.map(l => l.nama_laboran).join(', ') : '-';
-            
-            let ruanganStr = '';
-            if (item.status === 'online') ruanganStr = 'Online';
-            else {
-                if (item.theory_room) ruanganStr += item.theory_room.nama_ruangan + ' (Teori)<br>';
-                if (item.practice_room) ruanganStr += item.practice_room.nama_ruangan + ' (Praktik)';
+            const periodeObj = masterData.periodes.find(p => p.id == item.periode_id);
+            const periodeStr = periodeObj ? periodeObj.periode : '-';
+            const statusPeriode = periodeObj ? periodeObj.status : '-';
+            const tglMulai = (periodeObj && periodeObj.tanggal_mulai) ? periodeObj.tanggal_mulai : '-';
+            const tglSelesai = (periodeObj && periodeObj.tanggal_selesai) ? periodeObj.tanggal_selesai : '-';
+
+            // Dosen details
+            let dosenDetails = '';
+            if (item.dosens && item.dosens.length > 0) {
+                item.dosens.forEach((d, index) => {
+                    dosenDetails += `<tr style="background:transparent;"><td style="font-weight:600; padding:0.5rem 0; border:none;">Dosen ${index + 1}</td><td style="border:none;">: ${d.nama_dosen} (${d.kode_dosen || '-'})</td></tr>`;
+                });
+            } else {
+                dosenDetails = `<tr style="background:transparent;"><td style="font-weight:600; padding:0.5rem 0; border:none;">Dosen</td><td style="border:none;">: -</td></tr>`;
             }
-            if (!ruanganStr) ruanganStr = '-';
+
+            // Laboran details
+            let laboranDetails = '';
+            if (item.laborans && item.laborans.length > 0) {
+                item.laborans.forEach((l, index) => {
+                    laboranDetails += `<tr style="background:transparent;"><td style="font-weight:600; padding:0.5rem 0; border:none;">Laboran ${index + 1}</td><td style="border:none;">: ${l.nama_laboran} (${l.kode_laboran || '-'})</td></tr>`;
+                });
+            } else {
+                laboranDetails = `<tr style="background:transparent;"><td style="font-weight:600; padding:0.5rem 0; border:none;">Laboran</td><td style="border:none;">: -</td></tr>`;
+            }
+
+            const makul = item.makul;
+            const prodi = item.prodi;
+            const teori = item.theory_room;
+            const praktik = item.practice_room;
 
             const content = `
                 <table style="width:100%; border:none;">
-                    <tr style="background:transparent;"><td style="width:30%; font-weight:600; padding:0.5rem 0; border:none;">Mata Kuliah</td><td style="border:none;">: ${item.makul ? item.makul.nama_makul : '-'}</td></tr>
-                    <tr style="background:transparent;"><td style="font-weight:600; padding:0.5rem 0; border:none;">Program Studi</td><td style="border:none;">: ${item.prodi ? item.prodi.nama_prodi : '-'}</td></tr>
-                    <tr style="background:transparent;"><td style="font-weight:600; padding:0.5rem 0; border:none;">Dosen</td><td style="border:none;">: ${dosenNames}</td></tr>
-                    <tr style="background:transparent;"><td style="font-weight:600; padding:0.5rem 0; border:none;">Laboran</td><td style="border:none;">: ${laboranNames}</td></tr>
+                    <tr style="background:transparent;"><td style="width:35%; font-weight:600; padding:0.5rem 0; border:none;">Periode</td><td style="border:none;">: ${periodeStr}</td></tr>
+                    <tr style="background:transparent;"><td style="font-weight:600; padding:0.5rem 0; border:none;">Status Periode</td><td style="border:none;">: ${statusPeriode}</td></tr>
+                    <tr style="background:transparent;"><td style="font-weight:600; padding:0.5rem 0; border:none;">Tanggal Mulai</td><td style="border:none;">: ${tglMulai}</td></tr>
+                    <tr style="background:transparent;"><td style="font-weight:600; padding:0.5rem 0; border:none;">Tanggal Selesai</td><td style="border:none;">: ${tglSelesai}</td></tr>
+                    
+                    <tr style="background:transparent;"><td colspan="2" style="padding-top:1rem; border:none;"><hr style="border-color: rgba(255,255,255,0.1);"></td></tr>
+
+                    <tr style="background:transparent;"><td style="font-weight:600; padding:0.5rem 0; border:none;">Mata Kuliah</td><td style="border:none;">: ${makul ? makul.nama_makul : '-'}</td></tr>
+                    <tr style="background:transparent;"><td style="font-weight:600; padding:0.5rem 0; border:none;">Kode Mata Kuliah</td><td style="border:none;">: ${makul ? makul.kode_makul : '-'}</td></tr>
+                    <tr style="background:transparent;"><td style="font-weight:600; padding:0.5rem 0; border:none;">SKS Teori</td><td style="border:none;">: ${makul ? makul.jumlah_sks_teori : '-'}</td></tr>
+                    <tr style="background:transparent;"><td style="font-weight:600; padding:0.5rem 0; border:none;">SKS Praktik</td><td style="border:none;">: ${makul ? (makul.jumlah_sks_praktek !== undefined ? makul.jumlah_sks_praktek : makul.jumlah_sks_praktik || '-') : '-'}</td></tr>
+                    <tr style="background:transparent;"><td style="font-weight:600; padding:0.5rem 0; border:none;">Sesi Teori</td><td style="border:none;">: ${makul ? makul.jumlah_sesi_teori : '-'}</td></tr>
+                    <tr style="background:transparent;"><td style="font-weight:600; padding:0.5rem 0; border:none;">Sesi Praktik</td><td style="border:none;">: ${makul ? makul.jumlah_sesi_praktek : '-'}</td></tr>
+                    
+                    <tr style="background:transparent;"><td colspan="2" style="padding-top:1rem; border:none;"><hr style="border-color: rgba(255,255,255,0.1);"></td></tr>
+
+                    <tr style="background:transparent;"><td style="font-weight:600; padding:0.5rem 0; border:none;">Program Studi</td><td style="border:none;">: ${prodi ? prodi.nama_prodi : '-'}</td></tr>
+                    <tr style="background:transparent;"><td style="font-weight:600; padding:0.5rem 0; border:none;">Kode Prodi</td><td style="border:none;">: ${prodi ? prodi.kode_prodi : '-'}</td></tr>
                     <tr style="background:transparent;"><td style="font-weight:600; padding:0.5rem 0; border:none;">Kelas</td><td style="border:none;">: ${item.class}</td></tr>
                     <tr style="background:transparent;"><td style="font-weight:600; padding:0.5rem 0; border:none;">Hari</td><td style="border:none;">: ${item.day}</td></tr>
                     <tr style="background:transparent;"><td style="font-weight:600; padding:0.5rem 0; border:none;">Waktu</td><td style="border:none;">: ${item.start_time.substr(0,5)} - ${item.end_time.substr(0,5)}</td></tr>
-                    <tr style="background:transparent;"><td style="font-weight:600; padding:0.5rem 0; border:none;">Ruangan</td><td style="border:none;">: ${ruanganStr}</td></tr>
-                    <tr style="background:transparent;"><td style="font-weight:600; padding:0.5rem 0; border:none;">Tipe / Status</td><td style="border:none;">: ${item.schedule_type} / ${item.status}</td></tr>
+                    
+                    <tr style="background:transparent;"><td colspan="2" style="padding-top:1rem; border:none;"><hr style="border-color: rgba(255,255,255,0.1);"></td></tr>
+
+                    <tr style="background:transparent;"><td style="font-weight:600; padding:0.5rem 0; border:none;">Tipe Jadwal</td><td style="border:none;">: ${item.schedule_type}</td></tr>
+                    <tr style="background:transparent;"><td style="font-weight:600; padding:0.5rem 0; border:none;">Status</td><td style="border:none;">: ${item.status}</td></tr>
+                    ${item.status !== 'online' ? `
+                    <tr style="background:transparent;"><td style="font-weight:600; padding:0.5rem 0; border:none;">Ruang Teori</td><td style="border:none;">: ${teori ? teori.nama_ruangan + ' (' + (teori.kode_ruangan || '-') + ')' : '-'}</td></tr>
+                    <tr style="background:transparent;"><td style="font-weight:600; padding:0.5rem 0; border:none;">Ruang Praktik</td><td style="border:none;">: ${praktik ? praktik.nama_ruangan + ' (' + (praktik.kode_ruangan || '-') + ')' : '-'}</td></tr>
+                    ` : ''}
+                    
+                    <tr style="background:transparent;"><td colspan="2" style="padding-top:1rem; border:none;"><hr style="border-color: rgba(255,255,255,0.1);"></td></tr>
+
+                    ${dosenDetails}
+                    ${laboranDetails}
                 </table>
             `;
             document.getElementById('detail-content').innerHTML = content;
@@ -1120,6 +1227,41 @@
                 fetchSchedules();
             } catch (err) {
                 console.error(err);
+            }
+        }
+
+        async function bulkDeleteRecords(ids) {
+            if (!requireAuthOrRedirect()) return;
+
+            try {
+                const response = await fetch('/api/v1/jadwal/bulk-delete', {
+                    method: 'POST',
+                    headers: authHeaders({
+                        'Content-Type': 'application/json'
+                    }),
+                    body: JSON.stringify({ schedule_ids: ids })
+                });
+
+                if (response.status === 401) {
+                    clearTokens();
+                    window.location.href = LOGIN_URL;
+                    return;
+                }
+
+                if (!response.ok) {
+                    const result = await response.json();
+                    alert('Error: ' + (result.message || 'Gagal menghapus jadwal.'));
+                    return;
+                }
+                
+                const checkAll = document.getElementById('check-all');
+                if(checkAll) checkAll.checked = false;
+                
+                updateBulkDeleteButton();
+                fetchSchedules();
+            } catch (err) {
+                console.error(err);
+                alert('Terjadi kesalahan saat menghapus jadwal.');
             }
         }
 

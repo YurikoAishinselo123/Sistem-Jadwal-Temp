@@ -23,6 +23,15 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 Route::prefix('v1')->group(function () {
+    // ─── Test Route ─────────────────────────────────────────
+    Route::get('/test', function () {
+        return response()->json([
+            'status' => 'success',
+            'message' => 'API is working perfectly! This is some random text for you.',
+            'random_number' => rand(1, 1000)
+        ]);
+    });
+
     // ─── Authentication Routes ──────────────────────────────
     Route::prefix('auth')->group(function () {
         Route::post('/register', [\App\Http\Controllers\Api\V1\AuthController::class, 'register'])->middleware('throttle:6,1');
@@ -69,7 +78,9 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('ruangans', RuanganController::class)->only(['store', 'update', 'destroy']);
         Route::apiResource('periodes', PeriodeController::class)->only(['store', 'update', 'destroy']);
         Route::post('periodes/{periode}/tutup', [PeriodeController::class, 'tutup'])->name('periodes.tutup');
+        Route::post('periodes/{periode}/buka', [PeriodeController::class, 'buka'])->name('periodes.buka');
 
+        Route::post('jadwal/bulk-delete', [ScheduleController::class, 'bulkDestroy']);
         Route::post('jadwal', [ScheduleController::class, 'store']);
         Route::put('jadwal/{schedule}', [ScheduleController::class, 'update']);
         Route::delete('jadwal/{schedule}', [ScheduleController::class, 'destroy']);

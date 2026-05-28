@@ -60,9 +60,10 @@ class ScheduleConflictValidator
      *
      * Uses the composite index: idx_schedules_overlap (day, start_time, end_time)
      */
-    private function overlapQuery(string $day, string $start, string $end, ?int $excludeId): Builder
+    private function overlapQuery(int $periodeId, string $day, string $start, string $end, ?int $excludeId): Builder
     {
-        return Schedule::where('day', $day)
+        return Schedule::where('periode_id', $periodeId)
+            ->where('day', $day)
             ->where('start_time', '<', $end)    // Overlap condition part 1
             ->where('end_time',   '>', $start)  // Overlap condition part 2
             ->when($excludeId, fn($q) => $q->where('id', '!=', $excludeId));
@@ -81,7 +82,7 @@ class ScheduleConflictValidator
      */
     private function checkDosenConflicts(array $data, ?int $excludeId): array
     {
-        $conflicts = $this->overlapQuery($data['day'], $data['start_time'], $data['end_time'], $excludeId)
+        $conflicts = $this->overlapQuery($data['periode_id'], $data['day'], $data['start_time'], $data['end_time'], $excludeId)
             ->whereHas('dosens', fn($q) => $q->whereIn('dosen_id', $data['dosens']))
             ->with('dosens:id,nama_dosen')
             ->get(['id', 'day', 'start_time', 'end_time']);
@@ -110,7 +111,7 @@ class ScheduleConflictValidator
      */
     private function checkLaboranConflicts(array $data, ?int $excludeId): array
     {
-        $conflicts = $this->overlapQuery($data['day'], $data['start_time'], $data['end_time'], $excludeId)
+        $conflicts = $this->overlapQuery($data['periode_id'], $data['day'], $data['start_time'], $data['end_time'], $excludeId)
             ->whereHas('laborans', fn($q) => $q->whereIn('laboran_id', $data['laborans']))
             ->with('laborans:id,nama_laboran')
             ->get(['id', 'day', 'start_time', 'end_time']);
@@ -148,7 +149,7 @@ class ScheduleConflictValidator
             return []; // Online schedule — no rooms to check
         }
 
-        $conflict = $this->overlapQuery($data['day'], $data['start_time'], $data['end_time'], $excludeId)
+        $conflict = $this->overlapQuery($data['periode_id'], $data['day'], $data['start_time'], $data['end_time'], $excludeId)
             ->where(function ($q) use ($roomIds) {
                 $q->whereIn('theory_room_id',   $roomIds)
                   ->orWhereIn('practice_room_id', $roomIds);
@@ -182,7 +183,7 @@ class ScheduleConflictValidator
      */
     private function checkClassConflicts(array $data, ?int $excludeId): array
     {
-        $conflict = $this->overlapQuery($data['day'], $data['start_time'], $data['end_time'], $excludeId)
+        $conflict = $this->overlapQuery($data['periode_id'], $data['day'], $data['start_time'], $data['end_time'], $excludeId)
             ->where('makul_id', $data['makul_id'])
             ->where('class',    $data['class'])
             ->first(['id', 'day', 'start_time', 'end_time', 'class']);

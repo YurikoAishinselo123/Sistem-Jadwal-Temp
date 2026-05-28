@@ -29,7 +29,16 @@ class Periode extends Model
     public function tutupPeriode(): void
     {
         $this->update([
-            'status'    => 'nonaktif',
+            'status'          => 'nonaktif',
+            'tanggal_selesai' => now(),
+        ]);
+    }
+
+    public function bukaPeriode(): void
+    {
+        $this->update([
+            'status'          => 'aktif',
+            'tanggal_selesai' => null,
         ]);
     }
 

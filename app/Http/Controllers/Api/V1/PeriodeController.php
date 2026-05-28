@@ -71,4 +71,23 @@ class PeriodeController extends Controller
             'message' => 'Periode berhasil ditutup. Seluruh data dalam periode ini bersifat read-only.',
         ]);
     }
+
+    /**
+     * Buka Periode: unlocks it so it's active again.
+     */
+    public function buka(Periode $periode): JsonResponse
+    {
+        if (!$periode->isLocked()) {
+            return response()->json([
+                'message' => 'Periode ini sudah aktif.',
+            ], 422);
+        }
+
+        $periode->bukaPeriode();
+
+        return response()->json([
+            'data'    => $periode->fresh(),
+            'message' => 'Periode berhasil dibuka.',
+        ]);
+    }
 }
