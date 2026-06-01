@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StorePeriodeRequest extends FormRequest
 {
@@ -14,10 +15,17 @@ class StorePeriodeRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'periode'          => 'required|string|max:100',
+            'periode'          => 'required|string|max:100|unique:periodes,periode',
             'status'           => 'sometimes|in:aktif,nonaktif',
             'tanggal_mulai'    => 'required|date',
             'tanggal_selesai'  => 'nullable|date|after_or_equal:tanggal_mulai',
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'periode.unique' => 'Nama periode sudah digunakan.',
         ];
     }
 
