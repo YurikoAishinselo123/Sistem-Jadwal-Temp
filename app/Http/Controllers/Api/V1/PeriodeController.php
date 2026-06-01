@@ -48,6 +48,10 @@ class PeriodeController extends Controller
             ], 403);
         }
 
+        if (\App\Models\Schedule::where('periode_id', $periode->id)->exists()) {
+            return response()->json(['message' => 'Data tidak dapat dihapus karena masih digunakan dalam jadwal.'], 409);
+        }
+
         $periode->delete();
 
         return response()->json(['message' => 'Periode berhasil dihapus.'], 200);

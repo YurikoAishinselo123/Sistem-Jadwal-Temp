@@ -29,6 +29,10 @@ class RuanganController extends Controller
 
     public function update(UpdateRuanganRequest $request, Ruangan $ruangan): JsonResponse
     {
+        if (\App\Models\Schedule::where('theory_room_id', $ruangan->id)->orWhere('practice_room_id', $ruangan->id)->exists()) {
+            return response()->json(['message' => 'Data tidak dapat diubah karena masih digunakan dalam jadwal.'], 409);
+        }
+
         $ruangan->update($request->validated());
 
         return response()->json(['data' => $ruangan, 'message' => 'Ruangan berhasil diperbarui.']);
@@ -36,6 +40,10 @@ class RuanganController extends Controller
 
     public function destroy(Ruangan $ruangan): JsonResponse
     {
+        if (\App\Models\Schedule::where('theory_room_id', $ruangan->id)->orWhere('practice_room_id', $ruangan->id)->exists()) {
+            return response()->json(['message' => 'Data tidak dapat dihapus karena masih digunakan dalam jadwal.'], 409);
+        }
+
         $ruangan->delete();
 
         return response()->json(['message' => 'Ruangan berhasil dihapus.'], 200);

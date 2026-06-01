@@ -29,6 +29,10 @@ class ProdiController extends Controller
 
     public function update(UpdateProdiRequest $request, Prodi $prodi): JsonResponse
     {
+        if (\App\Models\Schedule::where('prodi_id', $prodi->id)->exists()) {
+            return response()->json(['message' => 'Data tidak dapat diubah karena masih digunakan dalam jadwal.'], 409);
+        }
+
         $prodi->update($request->validated());
 
         return response()->json(['data' => $prodi, 'message' => 'Prodi berhasil diperbarui.']);
@@ -36,6 +40,10 @@ class ProdiController extends Controller
 
     public function destroy(Prodi $prodi): JsonResponse
     {
+        if (\App\Models\Schedule::where('prodi_id', $prodi->id)->exists()) {
+            return response()->json(['message' => 'Data tidak dapat dihapus karena masih digunakan dalam jadwal.'], 409);
+        }
+
         $prodi->delete();
 
         return response()->json(['message' => 'Prodi berhasil dihapus.'], 200);
