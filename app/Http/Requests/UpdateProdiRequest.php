@@ -21,4 +21,12 @@ class UpdateProdiRequest extends FormRequest
             'nama_prodi' => ['required', 'string', 'max:255', Rule::unique('prodis', 'nama_prodi')->ignore($id)],
         ];
     }
+
+    public function messages(): array
+    {
+        return [
+            'kode_prodi.unique' => 'Kode prodi sudah digunakan.',
+            'nama_prodi.unique' => 'Nama prodi sudah digunakan.',
+        ];
+    }
 }

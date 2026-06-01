@@ -18,4 +18,12 @@ class StoreDosenRequest extends FormRequest
             'nama_dosen' => 'required|string|max:255|unique:dosens,nama_dosen',
         ];
     }
+
+    public function messages(): array
+    {
+        return [
+            'kode_dosen.unique' => 'Kode dosen sudah digunakan.',
+            'nama_dosen.unique' => 'Nama dosen sudah digunakan.',
+        ];
+    }
 }

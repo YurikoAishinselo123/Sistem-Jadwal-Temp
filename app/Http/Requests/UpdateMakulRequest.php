@@ -23,4 +23,12 @@ class UpdateMakulRequest extends FormRequest
             'jumlah_sesi_praktek'=> 'required|integer|min:0',
         ];
     }
+
+    public function messages(): array
+    {
+        return [
+            'kode_makul.unique' => 'Kode mata kuliah sudah digunakan.',
+            'nama_makul.unique' => 'Nama mata kuliah sudah digunakan.',
+        ];
+    }
 }

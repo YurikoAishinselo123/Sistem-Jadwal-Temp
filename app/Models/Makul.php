@@ -5,6 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @property int $id
+ * @property int $jumlah_sesi_teori
+ * @property int $jumlah_sesi_praktek
+ */
 class Makul extends Model
 {
     use HasFactory;

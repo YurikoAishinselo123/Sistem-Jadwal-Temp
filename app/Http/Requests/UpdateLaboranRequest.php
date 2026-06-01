@@ -21,4 +21,12 @@ class UpdateLaboranRequest extends FormRequest
             'nama_laboran' => ['required', 'string', 'max:255', Rule::unique('laborans', 'nama_laboran')->ignore($id)],
         ];
     }
+
+    public function messages(): array
+    {
+        return [
+            'kode_laboran.unique' => 'Kode laboran sudah digunakan.',
+            'nama_laboran.unique' => 'Nama laboran sudah digunakan.',
+        ];
+    }
 }

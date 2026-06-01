@@ -29,10 +29,6 @@ class LaboranController extends Controller
 
     public function update(UpdateLaboranRequest $request, Laboran $laboran): JsonResponse
     {
-        if ($laboran->schedules()->exists()) {
-            return response()->json(['message' => 'Data tidak dapat diubah karena masih digunakan dalam jadwal.'], 409);
-        }
-
         $laboran->update($request->validated());
 
         return response()->json(['data' => $laboran, 'message' => 'Laboran berhasil diperbarui.']);

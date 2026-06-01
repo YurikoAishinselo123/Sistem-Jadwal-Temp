@@ -29,10 +29,6 @@ class MakulController extends Controller
 
     public function update(UpdateMakulRequest $request, Makul $makul): JsonResponse
     {
-        if (\App\Models\Schedule::where('makul_id', $makul->id)->exists()) {
-            return response()->json(['message' => 'Data tidak dapat diubah karena masih digunakan dalam jadwal.'], 409);
-        }
-
         $makul->update($request->validated());
 
         return response()->json(['data' => $makul, 'message' => 'Makul berhasil diperbarui.']);

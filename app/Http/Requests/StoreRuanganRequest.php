@@ -19,4 +19,12 @@ class StoreRuanganRequest extends FormRequest
             'jenis_ruangan' => 'required|in:teori,praktik',
         ];
     }
+
+    public function messages(): array
+    {
+        return [
+            'kode_ruangan.unique' => 'Kode ruangan sudah digunakan.',
+            'nama_ruangan.unique' => 'Nama ruangan sudah digunakan.',
+        ];
+    }
 }
