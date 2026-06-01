@@ -31,7 +31,7 @@ class AuthController extends Controller
         $user = $this->authService->register($request->validated());
 
         return $this->successResponse(
-            'User registered successfully. Please verify your email.',
+            'Pengguna berhasil didaftarkan. Silakan verifikasi email Anda.',
             $user,
             201
         );
@@ -41,26 +41,26 @@ class AuthController extends Controller
     {
         $data = $this->authService->login($request->email, $request->password);
 
-        return $this->successResponse('Login successful.', $data);
+        return $this->successResponse('Login berhasil.', $data);
     }
 
     public function refresh(RefreshTokenRequest $request): JsonResponse
     {
         $data = $this->authService->refresh($request->refresh_token);
 
-        return $this->successResponse('Token refreshed successfully.', $data);
+        return $this->successResponse('Token berhasil diperbarui.', $data);
     }
 
     public function logout(Request $request): JsonResponse
     {
         $this->authService->logout($request->user());
 
-        return $this->successResponse('Logged out successfully.');
+        return $this->successResponse('Berhasil logout.');
     }
 
     public function me(Request $request): JsonResponse
     {
-        return $this->successResponse('User data retrieved successfully.', $request->user());
+        return $this->successResponse('Data pengguna berhasil diambil.', $request->user());
     }
 
     public function verifyEmail(Request $request, string $id, string $hash): JsonResponse
@@ -68,28 +68,28 @@ class AuthController extends Controller
         $user = \App\Models\User::findOrFail($id);
 
         if (!hash_equals((string) $hash, sha1($user->getEmailForVerification()))) {
-            return $this->errorResponse('Invalid verification link.', 403);
+            return $this->errorResponse('Tautan verifikasi tidak valid.', 403);
         }
 
         if ($user->hasVerifiedEmail()) {
-            return $this->successResponse('Email already verified.');
+            return $this->successResponse('Email sudah diverifikasi.');
         }
 
         $user->markEmailAsVerified();
         event(new \Illuminate\Auth\Events\Verified($user));
 
-        return $this->successResponse('Email successfully verified.');
+        return $this->successResponse('Email berhasil diverifikasi.');
     }
 
     public function resendVerificationEmail(Request $request): JsonResponse
     {
         if ($request->user()->hasVerifiedEmail()) {
-            return $this->successResponse('Email already verified.');
+            return $this->successResponse('Email sudah diverifikasi.');
         }
 
         $request->user()->sendEmailVerificationNotification();
 
-        return $this->successResponse('Verification link sent.');
+        return $this->successResponse('Tautan verifikasi telah dikirim.');
     }
 
     public function forgotPassword(ForgotPasswordRequest $request): JsonResponse
@@ -139,7 +139,7 @@ class AuthController extends Controller
             $accessToken = $data['token']['access_token'];
             return redirect('/login?token=' . urlencode($accessToken));
         } catch (\Exception $e) {
-            return redirect('/login?error=' . urlencode('Google authentication failed: ' . $e->getMessage()));
+            return redirect('/login?error=' . urlencode('Autentikasi Google gagal: ' . $e->getMessage()));
         }
     }
 }

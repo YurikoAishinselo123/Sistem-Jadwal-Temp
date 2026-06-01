@@ -16,7 +16,7 @@ GET /api/v1/jadwal
 
 ## Authentication
 
-This project uses Bearer Token authentication via Laravel Sanctum for protected endpoints.
+This project uses Bearer Token authentication. Some endpoints use Sanctum (`auth:sanctum`), and others use the default `auth:api` guard.
 
 Add this header for authenticated requests:
 
@@ -29,19 +29,33 @@ Accept: application/json
 
 ### Public Endpoints
 Most `index` and `show` endpoints are accessible without login:
+- `GET /api/v1/master-data`
+- `GET /api/v1/makuls` (and other master data `GET` routes)
 - `GET /api/v1/jadwal`
-- `GET /api/v1/jadwal/{jadwal}`
-- `GET /api/v1/datainput`
-- `POST /api/v1/datainputfilter`
-- `GET /api/v1/filter`
-- `GET /api/v1/jadwalpagi`
-- `GET /api/v1/jadwalmalam`
-- `GET /api/v1/makul` (and other master data `GET` routes)
+- `GET /api/v1/schedules`
+- Beban Kerja endpoints
 
 ### Protected Endpoints
 These endpoints require a valid Bearer token:
 - All create (`POST`), update (`PUT/PATCH`), and delete (`DELETE`) endpoints for schedule and master data.
-- Auth session endpoints like `logout` and `user`.
+- Auth session endpoints like `logout` and `me`.
+- The `/api/user` endpoint.
+
+---
+
+## Default User Endpoint
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| `GET` | `/api/user` | Yes (Sanctum) | Get current authenticated user details |
+
+---
+
+## Test Endpoint
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| `GET` | `/api/v1/test` | No | Test API connection and status |
 
 ---
 
@@ -49,112 +63,113 @@ These endpoints require a valid Bearer token:
 
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
-| `POST` | `/api/v1/register` | No | Register new user |
-| `POST` | `/api/v1/login` | No | Login and get access token |
-| `POST` | `/api/v1/logout` | Yes | Logout current user |
-| `GET` | `/api/v1/user` | Yes | Get current authenticated user details |
-
-### Login Request
-
-```json
-{
-  "email": "user@example.com",
-  "password": "password123"
-}
-```
+| `POST` | `/api/v1/auth/register` | No | Register new user |
+| `POST` | `/api/v1/auth/login` | No | Login and get access token |
+| `POST` | `/api/v1/auth/refresh` | No | Refresh token |
+| `POST` | `/api/v1/auth/forgot-password` | No | Request password reset link |
+| `POST` | `/api/v1/auth/reset-password` | No | Reset password |
+| `GET` | `/api/v1/auth/email/verify/{id}/{hash}` | No | Verify email |
+| `POST` | `/api/v1/auth/email/resend` | Yes | Resend verification email |
+| `POST` | `/api/v1/auth/logout` | Yes | Logout current user |
+| `GET` | `/api/v1/auth/me` | Yes | Get current authenticated user details via API guard |
 
 ---
 
-## Data Input & Filtering Endpoints
-
-These endpoints are specifically tailored for populating frontend form dropdowns and filters.
+## General / Aggregate Endpoints
 
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
-| `GET` | `/api/v1/datainput` | No | Get aggregate master data for initial form setup (periode, prodi, makul, dll) |
-| `POST` | `/api/v1/datainputfilter` | No | Get filtered dropdown data (dosen, ruangan, laboran) based on selected time and date |
-| `GET` | `/api/v1/filter` | No | Get available filter options |
+| `GET` | `/api/v1/master-data` | No | Get aggregated master data |
 
 ---
 
-## Jadwal Endpoints
+## Beban Kerja Endpoints
 
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
-| `GET` | `/api/v1/jadwal` | No | Get all schedules |
-| `GET` | `/api/v1/jadwal/{jadwal}` | No | Get schedule detail |
-| `POST` | `/api/v1/jadwal` | Yes | Create schedule |
-| `PUT/PATCH` | `/api/v1/jadwal/{jadwal}` | Yes | Update schedule |
-| `DELETE` | `/api/v1/jadwal/{jadwal}` | Yes | Delete schedule |
+| `GET/POST` | `/api/v1/beban-kerja/dosen` | No | Get/Process beban kerja dosen |
+| `GET/POST` | `/api/v1/beban-kerja/ruangan` | No | Get/Process beban kerja ruangan |
+| `GET/POST` | `/api/v1/beban-kerja/laboran` | No | Get/Process beban kerja laboran |
 
 ---
 
-## Waktu Perkuliahan Endpoints
+## Schedule / Jadwal Endpoints
 
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
-| `GET` | `/api/v1/waktu` | No | List waktu perkuliahan |
-| `GET` | `/api/v1/waktu/{waktu}` | No | Detail waktu perkuliahan |
-| `POST` | `/api/v1/waktu` | Yes | Create waktu perkuliahan |
-| `PUT/PATCH` | `/api/v1/waktu/{waktu}` | Yes | Update waktu perkuliahan |
-| `DELETE` | `/api/v1/waktu/{waktu}` | Yes | Delete waktu perkuliahan |
-| `GET` | `/api/v1/jadwalpagi` | No | Get morning schedules / times |
-| `GET` | `/api/v1/jadwalmalam` | No | Get night schedules / times |
+| `GET` | `/api/v1/jadwal` | No | List jadwal |
+| `GET` | `/api/v1/jadwal/{schedule}` | No | Detail jadwal |
+| `POST` | `/api/v1/jadwal` | Yes | Create jadwal |
+| `PUT/PATCH` | `/api/v1/jadwal/{schedule}` | Yes | Update jadwal |
+| `DELETE` | `/api/v1/jadwal/{schedule}` | Yes | Delete jadwal |
+| `POST` | `/api/v1/jadwal/bulk-delete` | Yes | Bulk delete jadwal |
+
+*Note: The `/api/v1/schedules` endpoints mirror the `/api/v1/jadwal` functionality exactly.*
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| `GET` | `/api/v1/schedules` | No | List schedules |
+| `GET` | `/api/v1/schedules/{schedule}` | No | Detail schedule |
+| `POST` | `/api/v1/schedules` | Yes | Create schedule |
+| `PUT/PATCH` | `/api/v1/schedules/{schedule}` | Yes | Update schedule |
+| `DELETE` | `/api/v1/schedules/{schedule}` | Yes | Delete schedule |
 
 ---
 
-## Master Data CRUD Endpoints
+## Master Data Endpoints
 
-### Mata Kuliah
+### Mata Kuliah (Makuls)
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
-| `GET` | `/api/v1/makul` | No | List mata kuliah |
-| `GET` | `/api/v1/makul/{makul}` | No | Detail mata kuliah |
-| `POST` | `/api/v1/makul` | Yes | Create mata kuliah |
-| `PUT/PATCH` | `/api/v1/makul/{makul}` | Yes | Update mata kuliah |
-| `DELETE` | `/api/v1/makul/{makul}` | Yes | Delete mata kuliah |
+| `GET` | `/api/v1/makuls` | No | List mata kuliah |
+| `GET` | `/api/v1/makuls/{makul}` | No | Detail mata kuliah |
+| `POST` | `/api/v1/makuls` | Yes | Create mata kuliah |
+| `PUT/PATCH` | `/api/v1/makuls/{makul}` | Yes | Update mata kuliah |
+| `DELETE` | `/api/v1/makuls/{makul}` | Yes | Delete mata kuliah |
 
 ### Dosen
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
-| `GET` | `/api/v1/dosen` | No | List dosen |
-| `GET` | `/api/v1/dosen/{dosen}` | No | Detail dosen |
-| `POST` | `/api/v1/dosen` | Yes | Create dosen |
-| `PUT/PATCH` | `/api/v1/dosen/{dosen}` | Yes | Update dosen |
-| `DELETE` | `/api/v1/dosen/{dosen}` | Yes | Delete dosen |
+| `GET` | `/api/v1/dosens` | No | List dosen |
+| `GET` | `/api/v1/dosens/{dosen}` | No | Detail dosen |
+| `POST` | `/api/v1/dosens` | Yes | Create dosen |
+| `PUT/PATCH` | `/api/v1/dosens/{dosen}` | Yes | Update dosen |
+| `DELETE` | `/api/v1/dosens/{dosen}` | Yes | Delete dosen |
 
 ### Laboran
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
-| `GET` | `/api/v1/laboran` | No | List laboran |
-| `GET` | `/api/v1/laboran/{laboran}` | No | Detail laboran |
-| `POST` | `/api/v1/laboran` | Yes | Create laboran |
-| `PUT/PATCH` | `/api/v1/laboran/{laboran}` | Yes | Update laboran |
-| `DELETE` | `/api/v1/laboran/{laboran}` | Yes | Delete laboran |
+| `GET` | `/api/v1/laborans` | No | List laboran |
+| `GET` | `/api/v1/laborans/{laboran}` | No | Detail laboran |
+| `POST` | `/api/v1/laborans` | Yes | Create laboran |
+| `PUT/PATCH` | `/api/v1/laborans/{laboran}` | Yes | Update laboran |
+| `DELETE` | `/api/v1/laborans/{laboran}` | Yes | Delete laboran |
 
-### Program Studi
+### Program Studi (Prodis)
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
-| `GET` | `/api/v1/prodi` | No | List program studi |
-| `GET` | `/api/v1/prodi/{prodi}` | No | Detail program studi |
-| `POST` | `/api/v1/prodi` | Yes | Create program studi |
-| `PUT/PATCH` | `/api/v1/prodi/{prodi}` | Yes | Update program studi |
-| `DELETE` | `/api/v1/prodi/{prodi}` | Yes | Delete program studi |
+| `GET` | `/api/v1/prodis` | No | List program studi |
+| `GET` | `/api/v1/prodis/{prodi}` | No | Detail program studi |
+| `POST` | `/api/v1/prodis` | Yes | Create program studi |
+| `PUT/PATCH` | `/api/v1/prodis/{prodi}` | Yes | Update program studi |
+| `DELETE` | `/api/v1/prodis/{prodi}` | Yes | Delete program studi |
 
 ### Ruangan
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
-| `GET` | `/api/v1/ruangan` | No | List ruangan |
-| `GET` | `/api/v1/ruangan/{ruangan}` | No | Detail ruangan |
-| `POST` | `/api/v1/ruangan` | Yes | Create ruangan |
-| `PUT/PATCH` | `/api/v1/ruangan/{ruangan}` | Yes | Update ruangan |
-| `DELETE` | `/api/v1/ruangan/{ruangan}` | Yes | Delete ruangan |
+| `GET` | `/api/v1/ruangans` | No | List ruangan |
+| `GET` | `/api/v1/ruangans/{ruangan}` | No | Detail ruangan |
+| `POST` | `/api/v1/ruangans` | Yes | Create ruangan |
+| `PUT/PATCH` | `/api/v1/ruangans/{ruangan}` | Yes | Update ruangan |
+| `DELETE` | `/api/v1/ruangans/{ruangan}` | Yes | Delete ruangan |
 
-### Periode Tahun Ajaran
+### Periode
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
-| `GET` | `/api/v1/periode` | No | List periode |
-| `GET` | `/api/v1/periode/{periode}` | No | Detail periode |
-| `POST` | `/api/v1/periode` | Yes | Create periode |
-| `PUT/PATCH` | `/api/v1/periode/{periode}` | Yes | Update periode |
-| `DELETE` | `/api/v1/periode/{periode}` | Yes | Delete periode |
+| `GET` | `/api/v1/periodes` | No | List periode |
+| `GET` | `/api/v1/periodes/{periode}` | No | Detail periode |
+| `POST` | `/api/v1/periodes` | Yes | Create periode |
+| `PUT/PATCH` | `/api/v1/periodes/{periode}` | Yes | Update periode |
+| `DELETE` | `/api/v1/periodes/{periode}` | Yes | Delete periode |
+| `POST` | `/api/v1/periodes/{periode}/tutup` | Yes | Tutup periode |
+| `POST` | `/api/v1/periodes/{periode}/buka` | Yes | Buka periode |

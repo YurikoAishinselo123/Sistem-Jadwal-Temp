@@ -19,17 +19,20 @@ return Application::configure(basePath: dirname(__DIR__))
             if ($request->is('api/*')) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Unauthenticated.',
+                    'messages' => ['Tidak terautentikasi.'],
                 ], 401);
             }
         });
 
         $exceptions->render(function (\Illuminate\Validation\ValidationException $e, \Illuminate\Http\Request $request) {
             if ($request->is('api/*')) {
+                $messages = [];
+                foreach ($e->errors() as $fieldErrors) {
+                    $messages = array_merge($messages, $fieldErrors);
+                }
                 return response()->json([
                     'success' => false,
-                    'message' => 'Validation Error.',
-                    'errors' => $e->errors(),
+                    'messages' => array_values(array_unique($messages)),
                 ], 422);
             }
         });
@@ -38,8 +41,54 @@ return Application::configure(basePath: dirname(__DIR__))
             if ($request->is('api/*')) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Record not found.',
+                    'messages' => ['Data tidak ditemukan.'],
                 ], 404);
+            }
+        });
+
+        $exceptions->render(function (\Illuminate\Database\QueryException $e, \Illuminate\Http\Request $request) {
+            if ($request->is('api/*')) {
+                $errorCode = $e->errorInfo[1] ?? 0;
+                if ($errorCode == 1451) {
+                    return response()->json([
+                        'success' => false,
+                        'messages' => ['Data tidak dapat dihapus karena masih digunakan oleh data lain.'],
+                    ], 409);
+                } elseif ($errorCode == 1062) {
+                    return response()->json([
+                        'success' => false,
+                        'messages' => ['Data sudah ada (duplikat).'],
+                    ], 409);
+                }
+
+                return response()->json([
+                    'success' => false,
+                    'messages' => ['Terjadi kesalahan pada database.'],
+                ], 500);
+            }
+        });
+
+        $exceptions->render(function (\Exception $e, \Illuminate\Http\Request $request) {
+            if ($request->is('api/*')) {
+                // Don't override other specific HTTP exceptions already handled above or by Laravel natively if we don't want to,
+                // but we can catch general 500s or other uncaught exceptions.
+                $statusCode = method_exists($e, 'getStatusCode') ? $e->getStatusCode() : 500;
+                $message = $e->getMessage();
+                
+                // Optional: Hide detailed error in production, but since they want Indonesian errors, we can give a general one
+                if ($statusCode === 500 && !config('app.debug')) {
+                    $message = 'Terjadi kesalahan pada server.';
+                }
+
+                // If message is empty or default english HTTP phrases
+                if (empty($message) || $message === 'Server Error') {
+                    $message = 'Terjadi kesalahan pada server.';
+                }
+
+                return response()->json([
+                    'success' => false,
+                    'messages' => [$message],
+                ], $statusCode);
             }
         });
     })->create();

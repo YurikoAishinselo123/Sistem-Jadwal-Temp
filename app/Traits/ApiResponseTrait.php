@@ -13,7 +13,7 @@ trait ApiResponseTrait
     {
         return response()->json([
             'success' => true,
-            'message' => $message,
+            'messages' => [$message],
             'data'    => $data,
         ], $statusCode);
     }
@@ -23,14 +23,26 @@ trait ApiResponseTrait
      */
     protected function errorResponse(string $message, int $statusCode = 400, $errors = null): JsonResponse
     {
-        $response = [
-            'success' => false,
-            'message' => $message,
-        ];
+        $messages = [$message];
 
         if ($errors !== null) {
-            $response['errors'] = $errors;
+            if (is_array($errors)) {
+                foreach ($errors as $fieldErrors) {
+                    if (is_array($fieldErrors)) {
+                        $messages = array_merge($messages, $fieldErrors);
+                    } else {
+                        $messages[] = $fieldErrors;
+                    }
+                }
+            } else {
+                $messages[] = $errors;
+            }
         }
+
+        $response = [
+            'success' => false,
+            'messages' => array_values(array_unique($messages)),
+        ];
 
         return response()->json($response, $statusCode);
     }

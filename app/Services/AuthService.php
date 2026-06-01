@@ -35,7 +35,7 @@ class AuthService
 
         if (!$user || !Hash::check($password, $user->password)) {
             throw ValidationException::withMessages([
-                'email' => ['Invalid credentials provided.'],
+                'email' => ['Email atau kata sandi yang Anda masukkan salah.'],
             ]);
         }
 
@@ -65,7 +65,7 @@ class AuthService
     public function refresh(string $refreshToken): array
     {
         throw ValidationException::withMessages([
-            'refresh_token' => ['Token refresh is not supported. Please log in again.'],
+            'refresh_token' => ['Pembaruan token tidak didukung. Silakan login kembali.'],
         ]);
     }
 

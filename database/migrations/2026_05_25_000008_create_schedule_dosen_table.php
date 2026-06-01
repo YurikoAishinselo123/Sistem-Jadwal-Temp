@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('schedule_dosen', function (Blueprint $table) {
             $table->foreignId('schedule_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('dosen_id')->constrained('dosens')->cascadeOnDelete();
+            $table->foreignId('dosen_id')->constrained('dosens')->restrictOnDelete();
             $table->primary(['schedule_id', 'dosen_id']);
             $table->index(['dosen_id', 'schedule_id'], 'idx_sd_dosen_schedule');
         });

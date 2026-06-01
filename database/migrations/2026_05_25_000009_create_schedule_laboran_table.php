@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('schedule_laboran', function (Blueprint $table) {
             $table->foreignId('schedule_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('laboran_id')->constrained('laborans')->cascadeOnDelete();
+            $table->foreignId('laboran_id')->constrained('laborans')->restrictOnDelete();
             $table->primary(['schedule_id', 'laboran_id']);
             $table->index(['laboran_id', 'schedule_id'], 'idx_sl_laboran_schedule');
         });

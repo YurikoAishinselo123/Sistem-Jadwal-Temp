@@ -10,17 +10,17 @@ return new class extends Migration
     {
         Schema::create('schedules', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('periode_id')->constrained('periodes')->cascadeOnDelete();
+            $table->foreignId('periode_id')->constrained('periodes')->restrictOnDelete();
             $table->enum('schedule_type', ['semester', 'pengganti', 'ujian']);
-            $table->foreignId('prodi_id')->constrained('prodis')->cascadeOnDelete();
-            $table->foreignId('makul_id')->constrained('makuls')->cascadeOnDelete();
+            $table->foreignId('prodi_id')->constrained('prodis')->restrictOnDelete();
+            $table->foreignId('makul_id')->constrained('makuls')->restrictOnDelete();
             $table->char('class', 1); // Kelas A-Z
             $table->string('day');    // Hari
             $table->time('start_time');
             $table->time('end_time');
             $table->enum('status', ['offline', 'online']);
-            $table->foreignId('theory_room_id')->nullable()->constrained('ruangans')->nullOnDelete();
-            $table->foreignId('practice_room_id')->nullable()->constrained('ruangans')->nullOnDelete();
+            $table->foreignId('theory_room_id')->nullable()->constrained('ruangans')->restrictOnDelete();
+            $table->foreignId('practice_room_id')->nullable()->constrained('ruangans')->restrictOnDelete();
             $table->timestamps();
 
             // Performance indexes
