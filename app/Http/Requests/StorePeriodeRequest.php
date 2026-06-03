@@ -16,7 +16,6 @@ class StorePeriodeRequest extends FormRequest
     {
         return [
             'periode'          => 'required|string|max:100|unique:periodes,periode',
-            'status'           => 'sometimes|in:aktif,nonaktif',
             'tanggal_mulai'    => 'required|date',
             'tanggal_selesai'  => 'nullable|date|after_or_equal:tanggal_mulai',
         ];
@@ -30,12 +29,11 @@ class StorePeriodeRequest extends FormRequest
     }
 
     /**
-     * Merge default status = aktif if not provided.
+     * Merge default values if not provided.
      */
     protected function prepareForValidation(): void
     {
         $this->merge([
-            'status' => 'aktif',
             'tanggal_selesai' => null,
         ]);
     }

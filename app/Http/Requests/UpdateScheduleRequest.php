@@ -20,7 +20,11 @@ class UpdateScheduleRequest extends FormRequest
             'makul_id'         => 'required|exists:makuls,id',
             'class'            => ['required', 'string', 'size:1', 'regex:/^[A-Z]$/'],
             'day'              => 'required|string|in:Senin,Selasa,Rabu,Kamis,Jumat,Sabtu,Minggu',
-            'start_time'       => 'required|date_format:H:i',
+            'start_time'       => [
+                'required', 
+                'date_format:H:i', 
+                new \App\Rules\ScheduleCollisionRule($this->route('schedule') ? $this->route('schedule')->id : null)
+            ],
             'end_time'         => 'required|date_format:H:i|after:start_time',
             'status'           => 'required|in:offline,online',
             'theory_room_id'   => 'required_if:status,offline|nullable|exists:ruangans,id',

@@ -23,8 +23,23 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email'    => 'required|string|email',
+            'login'    => 'required_without:email|string',
+            'email'    => 'required_without:login|string',
             'password' => 'required|string',
+        ];
+    }
+
+    /**
+     * Get custom messages for validator errors.
+     *
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'login.required_without' => 'Username atau Email wajib diisi.',
+            'email.required_without' => 'Username atau Email wajib diisi.',
+            'password.required'      => 'Password wajib diisi.',
         ];
     }
 }

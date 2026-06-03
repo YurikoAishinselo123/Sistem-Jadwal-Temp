@@ -33,18 +33,14 @@ class BebanKerjaController extends Controller
         $mappedSchedules = $schedules->map(function ($schedule) use (&$totalSesiMengajar, &$totalSksTeori, &$totalSksPraktik) {
             $makul = $schedule->makul;
             
-            // Assume 1 schedule entry = 1 sesi mapping for simplicity of "total sesi" overall.
-            // If the requirement meant "Total Sesi" per makul, we extract it.
-            // Based on requirements: "Total Sesi, Total SKS" per schedule item.
-            // A schedule typically represents 1 block of teaching.
-            // We'll aggregate based on the Makul's totals.
-            
-            $sesiMakul = $makul->jumlah_sesi_teori + $makul->jumlah_sesi_praktek;
-            $sksMakul = $makul->jumlah_sks_teori + $makul->jumlah_sks_praktek;
+            $sesiMakul = $makul ? ($makul->jumlah_sesi_teori + $makul->jumlah_sesi_praktek) : 0;
+            $sksMakul = $makul ? ($makul->jumlah_sks_teori + $makul->jumlah_sks_praktek) : 0;
+            $sksTeori = $makul ? $makul->jumlah_sks_teori : 0;
+            $sksPraktik = $makul ? $makul->jumlah_sks_praktek : 0;
 
             $totalSesiMengajar += $sesiMakul;
-            $totalSksTeori += $makul->jumlah_sks_teori;
-            $totalSksPraktik += $makul->jumlah_sks_praktek;
+            $totalSksTeori += $sksTeori;
+            $totalSksPraktik += $sksPraktik;
 
             // Determine room name and type based on status and rooms
             $ruangan = null;
@@ -55,21 +51,21 @@ class BebanKerjaController extends Controller
                 $jenisRuangan = 'Online';
             } else {
                 if ($schedule->theory_room_id) {
-                    $ruangan = $schedule->theoryRoom->nama_ruangan;
+                    $ruangan = $schedule->theoryRoom?->nama_ruangan ?? 'Tidak Diketahui';
                     $jenisRuangan = 'Teori';
                 } elseif ($schedule->practice_room_id) {
-                    $ruangan = $schedule->practiceRoom->nama_ruangan;
+                    $ruangan = $schedule->practiceRoom?->nama_ruangan ?? 'Tidak Diketahui';
                     $jenisRuangan = 'Praktik';
                 }
             }
 
             return [
                 'id' => $schedule->id,
-                'mata_kuliah' => $makul->nama_makul,
+                'mata_kuliah' => $makul ? $makul->nama_makul : 'Tidak Diketahui',
                 'kelas' => $schedule->class,
                 'hari' => $schedule->day,
-                'jam_mulai' => substr($schedule->start_time, 0, 5),
-                'jam_selesai' => substr($schedule->end_time, 0, 5),
+                'jam_mulai' => substr((string) $schedule->start_time, 0, 5),
+                'jam_selesai' => substr((string) $schedule->end_time, 0, 5),
                 'ruangan' => $ruangan,
                 'jenis_ruangan' => $jenisRuangan,
                 'total_sesi' => $sesiMakul,
@@ -115,22 +111,22 @@ class BebanKerjaController extends Controller
             
             // Determine the role of the room in this schedule
             $jenisRuangan = 'Teori';
-            $sesi = $makul->jumlah_sesi_teori;
+            $sesi = $makul ? $makul->jumlah_sesi_teori : 0;
 
             if ($schedule->practice_room_id == $ruanganId) {
                 $jenisRuangan = 'Praktik';
-                $sesi = $makul->jumlah_sesi_praktek;
+                $sesi = $makul ? $makul->jumlah_sesi_praktek : 0;
             }
 
             $totalSesiPenggunaan += $sesi;
 
             return [
                 'id' => $schedule->id,
-                'mata_kuliah' => $makul->nama_makul,
+                'mata_kuliah' => $makul ? $makul->nama_makul : 'Tidak Diketahui',
                 'dosen' => $dosens,
                 'hari' => $schedule->day,
-                'jam_mulai' => substr($schedule->start_time, 0, 5),
-                'jam_selesai' => substr($schedule->end_time, 0, 5),
+                'jam_mulai' => substr((string) $schedule->start_time, 0, 5),
+                'jam_selesai' => substr((string) $schedule->end_time, 0, 5),
                 'kelas' => $schedule->class,
                 'jenis_ruangan' => $jenisRuangan,
             ];
@@ -168,7 +164,7 @@ class BebanKerjaController extends Controller
         $mappedSchedules = $schedules->map(function ($schedule) use (&$totalSesiLaboran) {
             $makul = $schedule->makul;
 
-            $sesiMakul = $makul->jumlah_sesi_teori + $makul->jumlah_sesi_praktek;
+            $sesiMakul = $makul ? ($makul->jumlah_sesi_teori + $makul->jumlah_sesi_praktek) : 0;
             $totalSesiLaboran += $sesiMakul;
 
             $ruangan = null;
@@ -179,22 +175,22 @@ class BebanKerjaController extends Controller
                 $jenisRuangan = 'Online';
             } else {
                 if ($schedule->practice_room_id) {
-                    $ruangan = $schedule->practiceRoom?->nama_ruangan;
+                    $ruangan = $schedule->practiceRoom?->nama_ruangan ?? 'Tidak Diketahui';
                     $jenisRuangan = 'Praktik';
                 } elseif ($schedule->theory_room_id) {
-                    $ruangan = $schedule->theoryRoom?->nama_ruangan;
+                    $ruangan = $schedule->theoryRoom?->nama_ruangan ?? 'Tidak Diketahui';
                     $jenisRuangan = 'Teori';
                 }
             }
 
             return [
                 'id' => $schedule->id,
-                'mata_kuliah' => $makul->nama_makul,
+                'mata_kuliah' => $makul ? $makul->nama_makul : 'Tidak Diketahui',
                 'program_studi' => $schedule->prodi?->nama_prodi,
                 'kelas' => $schedule->class,
                 'hari' => $schedule->day,
-                'jam_mulai' => substr($schedule->start_time, 0, 5),
-                'jam_selesai' => substr($schedule->end_time, 0, 5),
+                'jam_mulai' => substr((string) $schedule->start_time, 0, 5),
+                'jam_selesai' => substr((string) $schedule->end_time, 0, 5),
                 'ruangan' => $ruangan,
                 'jenis_ruangan' => $jenisRuangan,
                 'total_sesi' => $sesiMakul,

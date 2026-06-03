@@ -15,7 +15,8 @@ class AuthService
     public function register(array $data): User
     {
         $user = User::create([
-            'name'     => $data['name'],
+            'name'     => $data['name'] ?? $data['username'],
+            'username' => $data['username'],
             'email'    => $data['email'],
             'password' => Hash::make($data['password']),
         ]);
@@ -29,13 +30,15 @@ class AuthService
     /**
      * Authenticate user and issue a Personal Access Token.
      */
-    public function login(string $email, string $password): array
+    public function login(string $identifier, string $password): array
     {
-        $user = User::where('email', $email)->first();
+        $user = User::where('email', $identifier)
+                    ->orWhere('username', $identifier)
+                    ->first();
 
         if (!$user || !Hash::check($password, $user->password)) {
             throw ValidationException::withMessages([
-                'email' => ['Email atau kata sandi yang Anda masukkan salah.'],
+                'login' => ['Username/Email atau kata sandi yang Anda masukkan salah.'],
             ]);
         }
 

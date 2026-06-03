@@ -18,7 +18,6 @@ class UpdatePeriodeRequest extends FormRequest
 
         return [
             'periode'          => ['required', 'string', 'max:100', Rule::unique('periodes', 'periode')->ignore($id)],
-            'status'           => 'required|in:aktif,nonaktif',
             'tanggal_mulai'    => 'required|date',
             'tanggal_selesai'  => 'nullable|date|after_or_equal:tanggal_mulai',
         ];
